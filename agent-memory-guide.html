@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Agent Memory Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F4F6F8; --surface:#FFFFFF; --sunk:#EBEEF2; --ink:#12161B; --ink-2:#3A424D; --muted:#5E6875;
+  --line:#D8DDE4; --line-2:#C3CAD3;
+  --accent:#EA7900; --accent-ink:#A95500; --accent-soft:#FDEEDD;
+  --cool:#1F6FB2; --cool-soft:#E3EEF8;
+  --good:#1F8A4C; --good-soft:#E2F3E9; --bad:#C23B30; --bad-soft:#FBE6E4;
+  --grid:#E4E8ED;
+  --display:"Sora", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1115; --surface:#161A20; --sunk:#1C2128; --ink:#E9ECF0; --ink-2:#C2C9D2; --muted:#96A0AC;
+    --line:#2A313A; --line-2:#3A434E;
+    --accent:#FF9124; --accent-ink:#FFA851; --accent-soft:#3A2512;
+    --cool:#5BA7EA; --cool-soft:#132638;
+    --good:#4CC57F; --good-soft:#132A1D; --bad:#F0736A; --bad-soft:#3A1917;
+    --grid:#232931;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1115; --surface:#161A20; --sunk:#1C2128; --ink:#E9ECF0; --ink-2:#C2C9D2; --muted:#96A0AC;
+  --line:#2A313A; --line-2:#3A434E;
+  --accent:#FF9124; --accent-ink:#FFA851; --accent-soft:#3A2512;
+  --cool:#5BA7EA; --cool-soft:#132638;
+  --good:#4CC57F; --good-soft:#132A1D; --bad:#F0736A; --bad-soft:#3A1917;
+  --grid:#232931;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,5vw,3.25rem);line-height:1.08;font-weight:700}
+h2{font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.15;font-weight:600}
+h3{font-size:1.1rem;font-weight:600;line-height:1.3}
+p{margin:0;max-width:66ch}
+code,.mono{font-family:var(--mono);font-size:.88em}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink)}
+.lede{color:var(--ink-2);font-size:1.08rem}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* nav */
+.topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topnav .wrap{display:flex;align-items:center;gap:18px;height:54px}
+.brand{font-family:var(--display);font-weight:700;font-size:.95rem;white-space:nowrap;display:flex;gap:8px;align-items:center}
+.brand i{width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block}
+.navlinks{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{white-space:nowrap;text-decoration:none;color:var(--muted);font-size:.84rem;padding:6px 10px;border-radius:6px;font-weight:500}
+.navlinks a:hover{color:var(--ink);background:var(--sunk)}
+.navlinks a.on{color:var(--ink);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
+
+section{padding-block:72px;border-bottom:1px solid var(--line)}
+.sec-head{display:grid;gap:12px;margin-bottom:32px}
+.sec-head .num{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+
+/* hero */
+.hero{padding-block:56px 64px}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.hero .lede{margin-top:18px}
+.hero-facts{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.fact{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:8px 12px;font-size:.86rem;color:var(--ink-2)}
+.fact b{font-family:var(--mono);color:var(--ink);font-weight:500;margin-right:6px}
+.loop-svg{width:100%;height:auto;display:block}
+
+/* panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.stage{padding:20px}
+.stage-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);background:var(--sunk);border-radius:0 0 10px 10px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-2);background:var(--surface);border-radius:6px;padding:7px 14px;font-size:.88rem;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(.95)}
+.btn svg{width:14px;height:14px}
+.caption{font-size:.9rem;color:var(--ink-2);flex:1;min-width:200px}
+.caption b{color:var(--ink)}
+.steps{display:flex;gap:4px}
+.steps i{width:18px;height:4px;border-radius:2px;background:var(--line-2);display:block;transition:background .3s}
+.steps i.on{background:var(--accent)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line-2);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.84rem;color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* landscape */
+.land{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:16px}
+.tool{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:12px 12px 11px;display:grid;gap:6px;transition:opacity .25s,transform .25s,border-color .2s}
+.tool:hover{border-color:var(--line-2);transform:translateY(-1px)}
+.tool[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.tool.dim{opacity:.28}
+.tool .t-name{font-weight:600;font-size:.95rem;display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+.tool .t-kind{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--accent-soft);color:var(--accent-ink);white-space:nowrap}
+.detail{position:sticky;top:76px;padding:20px;display:grid;gap:14px}
+.detail dl{margin:0;display:grid;gap:12px}
+.detail dt{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.detail dd{margin:2px 0 0;font-size:.93rem;color:var(--ink-2)}
+.verdict{background:var(--sunk);border-radius:6px;padding:10px 12px;font-size:.93rem}
+
+/* chart */
+.chart-wrap{margin-top:28px;padding:20px}
+.chart-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:end;margin-bottom:10px}
+.legend{display:flex;gap:16px;font-size:.84rem;color:var(--ink-2);flex-wrap:wrap}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.sw{width:11px;height:11px;border-radius:50%;display:inline-block}
+.sw.claim{background:var(--accent)}
+.sw.ind{border:2.5px solid var(--ink);background:var(--surface)}
+.sw.comp{border:2px dashed var(--muted)}
+.chart-scroll{overflow-x:auto}
+#bench{display:block;width:100%;min-width:560px;height:auto}
+#bench text{fill:var(--ink-2);font-family:var(--body);font-size:12px}
+#bench .axis text{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:.8rem;padding:6px 9px;border-radius:5px;opacity:0;transition:opacity .12s;max-width:240px}
+.note{font-size:.84rem;color:var(--muted);margin-top:10px}
+
+/* compare (section 2) */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.cmp h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctx{margin-top:14px;border:1.5px dashed var(--line-2);border-radius:8px;min-height:150px;padding:10px;display:flex;flex-direction:column;gap:6px;position:relative}
+.ctx-label{font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.meter{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .9s ease}
+.filebox{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:.76rem;color:var(--ink-2);line-height:1.55;transition:transform .8s cubic-bezier(.3,.7,.2,1),opacity .5s}
+.mempool{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.mem{font-family:var(--mono);font-size:.7rem;padding:3px 7px;border-radius:4px;background:var(--sunk);color:var(--muted);border:1px solid var(--line);transition:all .4s}
+.mem.hit{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent)}
+.query{font-family:var(--mono);font-size:.8rem;border:1px solid var(--line-2);border-radius:6px;padding:7px 10px;margin-top:10px;min-height:34px;background:var(--surface)}
+.query .cur{display:inline-block;width:7px;height:14px;background:var(--accent);vertical-align:-2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.fly{position:fixed;z-index:40;pointer-events:none;transition:transform .7s cubic-bezier(.3,.7,.2,1),opacity .7s}
+table.plain{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:24px}
+table.plain th,table.plain td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.plain th{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+table.plain td:first-child{color:var(--muted);font-weight:500;white-space:nowrap}
+.tbl-scroll{overflow-x:auto}
+.callout{margin-top:22px;padding:14px 16px;border-radius:8px;background:var(--accent-soft);color:var(--ink);font-size:.95rem}
+.callout b{color:var(--accent-ink)}
+
+/* lifecycle (section 3) */
+.life-svg{width:100%;height:auto;display:block;min-width:640px}
+.life-svg text{font-family:var(--body);fill:var(--ink-2)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.mode{border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--surface);transition:border-color .3s,box-shadow .3s}
+.mode.lit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.mode h3{font-size:.98rem}
+.mode p{font-size:.88rem;color:var(--ink-2);margin-top:6px}
+.mode .ex{font-family:var(--mono);font-size:.74rem;color:var(--muted);margin-top:8px}
+
+/* decisions (section 4) */
+.dec-grid{display:grid;grid-template-columns:260px 1fr;gap:20px}
+.strat{display:grid;gap:8px;align-content:start}
+.strat button{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px}
+.strat button b{display:block;font-size:.94rem}
+.strat button span{font-size:.8rem;color:var(--muted)}
+.strat button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.dec-stage{min-height:300px;display:flex;flex-direction:column;gap:10px}
+.card-dec{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-family:var(--mono);font-size:.8rem;line-height:1.6;transition:all .6s cubic-bezier(.3,.7,.2,1);position:relative}
+.card-dec .k{color:var(--muted)}
+.card-dec .st{position:absolute;top:10px;right:12px;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:3px}
+.st.active{background:var(--good-soft);color:var(--good)}
+.st.old{background:var(--sunk);color:var(--muted)}
+.st.gone{background:var(--bad-soft);color:var(--bad)}
+.card-dec.faded{opacity:.5}
+.card-dec.struck .val{text-decoration:line-through;text-decoration-color:var(--bad)}
+.card-dec.vanish{opacity:0;transform:translateX(30px) scale(.96);height:0;padding-block:0;margin:0;border-width:0;overflow:hidden}
+.card-dec.enter{opacity:0;transform:translateY(-14px)}
+.chain{font-family:var(--mono);font-size:.74rem;color:var(--muted);display:flex;align-items:center;gap:6px;padding-left:14px}
+.gitlog{font-family:var(--mono);font-size:.78rem;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--sunk);line-height:1.8}
+.gitlog .h{color:var(--accent-ink)}
+.gitlog div{transition:opacity .5s,transform .5s}
+pre.yaml{margin:0;font-family:var(--mono);font-size:.8rem;line-height:1.65;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;color:var(--ink-2)}
+pre.yaml .k{color:var(--cool)}
+pre.yaml .c{color:var(--muted)}
+
+/* parallel (section 5) */
+.par-svg{width:100%;height:auto;display:block;min-width:720px}
+.par-svg text{font-family:var(--body);fill:var(--ink)}
+.par-svg .sm{font-size:11px;fill:var(--muted);font-family:var(--mono)}
+.warn{margin-top:20px;border:1px solid var(--line);border-left:0;border-radius:8px;padding:14px 16px;display:flex;gap:12px;background:var(--surface)}
+.warn .ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-weight:700;font-family:var(--mono);font-size:.8rem}
+.rules{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:22px;counter-reset:r}
+.rule{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-size:.88rem;color:var(--ink-2);transition:border-color .3s,box-shadow .3s}
+.rule b{display:block;color:var(--ink);font-size:.93rem;margin-bottom:3px}
+.rule b::before{counter-increment:r;content:counter(r) ". ";font-family:var(--mono);color:var(--accent-ink)}
+.rule.lit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* pipeline (section 6) */
+.pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
+.pstep{padding:16px;border:1px solid var(--line);background:var(--surface);min-height:200px;display:flex;flex-direction:column;gap:8px;transition:border-color .3s}
+.pstep:first-child{border-radius:8px 0 0 8px}
+.pstep:last-child{border-radius:0 8px 8px 0}
+.pstep+.pstep{border-left:0}
+.pstep.lit{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.pstep .lbl{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.pstep .body{font-family:var(--mono);font-size:.74rem;line-height:1.55;color:var(--ink-2);background:var(--sunk);border-radius:6px;padding:8px 10px;opacity:.25;transition:opacity .5s,transform .5s;transform:translateY(6px)}
+.pstep.done .body{opacity:1;transform:none}
+.pstep .sz{margin-top:auto;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.benefits{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:22px}
+.benefit{border-top:2px solid var(--accent);padding-top:10px}
+.benefit b{display:block;font-size:.95rem}
+.benefit span{font-size:.86rem;color:var(--ink-2)}
+.tools-note{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tools-note div{font-size:.86rem;color:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface)}
+.tools-note b{color:var(--ink)}
+
+/* recommendation (section 7) */
+.arch{display:grid;gap:10px}
+.layer{display:grid;grid-template-columns:200px 1fr auto;gap:16px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--surface)}
+.layer .lname{font-family:var(--display);font-weight:600}
+.layer .ldesc{font-size:.9rem;color:var(--ink-2)}
+.layer .lpick{font-family:var(--mono);font-size:.78rem;color:var(--accent-ink);text-align:right}
+.layer.core{border-color:var(--accent)}
+.scopes{display:flex;align-items:stretch;gap:0;margin-top:22px;overflow-x:auto}
+.scope{flex:1;min-width:130px;padding:12px 14px;border:1px solid var(--line);background:var(--surface);position:relative}
+.scope:first-child{border-radius:8px 0 0 8px}
+.scope:last-child{border-radius:0 8px 8px 0}
+.scope+.scope{border-left:0}
+.scope b{display:block;font-family:var(--display);font-size:.95rem}
+.scope span{font-size:.8rem;color:var(--muted)}
+.scope .who{font-family:var(--mono);font-size:.7rem;color:var(--accent-ink);margin-top:6px;display:block}
+.must{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:22px}
+.must div{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-size:.88rem;color:var(--ink-2)}
+.must b{display:block;color:var(--ink)}
+footer{padding-block:40px;color:var(--muted);font-size:.84rem}
+
+@media (max-width:900px){
+  .hero-grid,.land,.cmp,.dec-grid{grid-template-columns:1fr}
+  .detail{position:static}
+  .modes,.tools-note{grid-template-columns:1fr}
+  .pipe{grid-template-columns:1fr 1fr}
+  .pstep{border:1px solid var(--line)!important;border-radius:8px!important;min-height:0}
+  .pipe{gap:8px}
+  .layer{grid-template-columns:1fr}
+  .layer .lpick{text-align:left}
+}
+@media (max-width:520px){
+  .pipe{grid-template-columns:1fr}
+  section{padding-block:52px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:0s!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav" aria-label="Sections">
+  <div class="wrap">
+    <div class="brand"><i></i>Agent Memory</div>
+    <div class="navlinks" id="navlinks">
+      <a href="#landscape">The landscape</a>
+      <a href="#vs-files">Files vs. services</a>
+      <a href="#lifecycle">Write &amp; read</a>
+      <a href="#decisions">Changing decisions</a>
+      <a href="#parallel">Parallel agents</a>
+      <a href="#toolcalls">Tool-call memory</a>
+      <a href="#pick">Our pick</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Research brief · September 2026</div>
+      <h1 style="margin-top:14px">How coding agents remember what they learned</h1>
+      <p class="lede">A coding agent starts every session with no memory of the last one. A memory layer captures what it did, stores it, and hands the useful parts back next time. We compared 12 memory systems and worked out how to run one for a pipeline shared across a whole organization.</p>
+      <div class="hero-facts">
+        <div class="fact"><b>12</b>systems compared</div>
+        <div class="fact"><b>6</b>questions answered</div>
+        <div class="fact"><b>1</b>recommended setup</div>
+      </div>
+    </div>
+    <div class="panel" style="padding:12px">
+      <svg class="loop-svg" id="loop" viewBox="0 0 440 340" role="img" aria-label="The memory loop: the agent acts, events are captured, stored, and recalled at the start of the next task.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line-2)"/></marker>
+        </defs>
+        <path id="loopPath" d="M220,58 C340,58 380,110 380,170 C380,230 340,282 220,282 C100,282 60,230 60,170 C60,110 100,58 220,58 Z" fill="none" stroke="var(--line-2)" stroke-width="1.5" stroke-dasharray="4 5"/>
+        <g font-family="var(--display)" font-weight="600" font-size="14">
+          <g id="ln0"><rect x="160" y="38" width="120" height="40" rx="8" fill="var(--surface)" stroke="var(--line-2)"/><text x="220" y="63" text-anchor="middle" fill="var(--ink)">Agent works</text></g>
+          <g id="ln1"><rect x="320" y="150" width="110" height="40" rx="8" fill="var(--surface)" stroke="var(--line-2)"/><text x="375" y="175" text-anchor="middle" fill="var(--ink)">Capture</text></g>
+          <g id="ln2"><rect x="160" y="262" width="120" height="40" rx="8" fill="var(--surface)" stroke="var(--line-2)"/><text x="220" y="287" text-anchor="middle" fill="var(--ink)">Store</text></g>
+          <g id="ln3"><rect x="10" y="150" width="110" height="40" rx="8" fill="var(--surface)" stroke="var(--line-2)"/><text x="65" y="175" text-anchor="middle" fill="var(--ink)">Recall</text></g>
+        </g>
+        <g font-family="var(--mono)" font-size="10.5" fill="var(--muted)">
+          <text x="220" y="140" text-anchor="middle" id="loopSub">tool calls, results, fixes</text>
+          <text x="220" y="160" text-anchor="middle" font-family="var(--display)" font-size="22" font-weight="700" fill="var(--ink)" id="loopMid">Session 1</text>
+          <text x="220" y="200" text-anchor="middle" id="loopNote">"npm test needs NODE_ENV=test"</text>
+        </g>
+        <circle r="7" fill="var(--accent)" id="loopDot"><animateMotion dur="7s" repeatCount="indefinite" rotate="auto"><mpath href="#loopPath"/></animateMotion></circle>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- 1 LANDSCAPE -->
+<section id="landscape">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">01 · The landscape</div>
+      <h2>Twelve memory systems side by side</h2>
+      <p class="lede">Some keep a few markdown files. Some run a vector database or a knowledge graph. Some version memory like code. Filter the list, then click any system to read the details.</p>
+    </div>
+    <div class="chips" id="filters" role="group" aria-label="Filter systems">
+      <button class="chip" aria-pressed="true" data-f="all">All 12</button>
+      <button class="chip" aria-pressed="false" data-f="local">Local &amp; lightweight</button>
+      <button class="chip" aria-pressed="false" data-f="shared">Shared service</button>
+      <button class="chip" aria-pressed="false" data-f="graph">Knowledge graph</button>
+      <button class="chip" aria-pressed="false" data-f="git">Versioned like code</button>
+      <button class="chip" aria-pressed="false" data-f="bench">Published benchmarks</button>
+    </div>
+    <div class="land">
+      <div class="tools" id="tools"></div>
+      <aside class="panel detail" id="detail" aria-live="polite"></aside>
+    </div>
+
+    <div class="panel chart-wrap">
+      <div class="chart-head">
+        <div>
+          <h3 id="benchTitle">LoCoMo scores: what vendors claim vs. what others measured</h3>
+          <p class="muted" style="font-size:.88rem;margin-top:4px">Long-conversation recall accuracy, 0–100. Hover a mark for the source.</p>
+        </div>
+        <div class="chips" role="group" aria-label="Benchmark">
+          <button class="chip" aria-pressed="true" data-b="locomo">LoCoMo</button>
+          <button class="chip" aria-pressed="false" data-b="lme">LongMemEval</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw claim"></i>Self-reported</span>
+        <span><i class="sw ind"></i>Independent study</span>
+        <span><i class="sw comp"></i>Reported by a competitor</span>
+      </div>
+      <div class="chart-scroll"><svg id="bench" viewBox="0 0 760 300" role="img" aria-label="Benchmark dot plot"></svg></div>
+      <p class="note">These benchmarks test recall over chat conversations, not coding work. Metrics differ between vendors (QA accuracy vs. retrieval recall), so treat the numbers as direction, not ranking. Independent re-runs land well below vendor claims.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 FILES VS SERVICES -->
+<section id="vs-files">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">02 · How is this different from Claude Code's memory files?</div>
+      <h2>Load everything, or search for what matters</h2>
+      <p class="lede">Claude Code ships two memory files: <code>CLAUDE.md</code> holds rules people write, and auto memory holds notes Claude writes for itself. Both load in full at the start of every session. A memory service stores far more and loads only the items that match the current task.</p>
+    </div>
+    <div class="panel">
+      <div class="stage cmp">
+        <div>
+          <h3>Claude Code memory files <span class="tag" style="background:var(--sunk);color:var(--muted)">whole file</span></h3>
+          <div class="filebox" id="fileA">
+            # CLAUDE.md<br>- Use pnpm, not npm<br>- Tests: pnpm test --run<br>- API handlers live in src/api<br>- Never commit .env files<br>- Prefer zod for validation<br>… ~200 lines
+          </div>
+          <div class="ctx" id="ctxA"><span class="ctx-label">Agent context window</span></div>
+          <div style="margin-top:10px;display:grid;gap:4px"><span class="mono muted" style="font-size:.72rem">Context used by memory</span><div class="meter"><i id="meterA"></i></div></div>
+        </div>
+        <div>
+          <h3>Memory service <span class="tag">searched per task</span></h3>
+          <div class="mempool" id="pool"></div>
+          <div class="query" id="query"><span class="muted">task:</span> <span id="qtext"></span><span class="cur"></span></div>
+          <div class="ctx" id="ctxB"><span class="ctx-label">Agent context window</span></div>
+          <div style="margin-top:10px;display:grid;gap:4px"><span class="mono muted" style="font-size:.72rem">Context used by memory</span><div class="meter"><i id="meterB"></i></div></div>
+        </div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn primary" id="playCmp"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Play</button>
+        <div class="steps" id="stepsCmp"><i></i><i></i><i></i><i></i></div>
+        <div class="caption" id="capCmp">Press play to watch a new session start with each approach.</div>
+      </div>
+    </div>
+    <div class="tbl-scroll">
+      <table class="plain">
+        <thead><tr><th></th><th>Claude Code memory files</th><th>Memory tools (Mem0, Hindsight, Graphiti…)</th></tr></thead>
+        <tbody>
+          <tr><td>Retrieval</td><td>Whole file loaded every session</td><td>Searched per query; only relevant items loaded</td></tr>
+          <tr><td>Scale</td><td>Small (index ~200 lines)</td><td>Thousands to millions of memories</td></tr>
+          <tr><td>Structure</td><td>Free-form markdown</td><td>Facts, entities, timestamps, confidence</td></tr>
+          <tr><td>Change over time</td><td>Manual edits; auto memory not versioned</td><td>Supersede, invalidate or version</td></tr>
+          <tr><td>Sharing</td><td><code>CLAUDE.md</code> via git; auto memory is local and Claude-only</td><td>One server across agents, users and CLIs</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><b>Use both.</b> Keep a short set of always-on rules in <code>CLAUDE.md</code>. Put the large, growing body of learned knowledge in a memory service.</div>
+  </div>
+</section>
+
+<!-- 3 LIFECYCLE -->
+<section id="lifecycle">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">03 · When is memory written and when is it read?</div>
+      <h2>One task, from start to finish</h2>
+      <p class="lede">Memory gets written in three ways: on every event, in the background, or when someone asks. It gets read in two: pushed into the prompt before work starts, or pulled by the agent through a search tool. Follow one task to see where each happens.</p>
+    </div>
+    <div class="panel">
+      <div class="stage chart-scroll">
+        <svg class="life-svg" id="life" viewBox="0 0 900 290" role="img" aria-label="Timeline of a task showing push recall, pull search, event capture and background reflection"></svg>
+      </div>
+      <div class="stage-bar">
+        <button class="btn primary" id="playLife"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Play</button>
+        <div class="steps" id="stepsLife"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="caption" id="capLife">Press play to run a task through the memory layer.</div>
+      </div>
+    </div>
+    <div class="modes">
+      <div class="mode" id="mode0"><div class="eyebrow">Write</div><h3>Automatic, on every event</h3><p>Hooks record each tool call or each response as it happens.</p><div class="ex">claude-mem hooks · Hermes providers</div></div>
+      <div class="mode" id="mode1"><div class="eyebrow">Write</div><h3>Background, periodic</h3><p>A reflection pass runs while the agent is idle or when a session ends.</p><div class="ex">Letta sleep-time · Holographic (off by default)</div></div>
+      <div class="mode" id="mode2"><div class="eyebrow">Write</div><h3>Explicit, on request</h3><p>A person or the agent decides that something is worth saving.</p><div class="ex">ByteRover brv curate · Hermes memory tool</div></div>
+    </div>
+    <div class="callout"><b>Recommendation.</b> Push a small, high-confidence set at task start: conventions and active decisions for the files in scope. Expose search for everything else.</div>
+  </div>
+</section>
+
+<!-- 4 DECISIONS -->
+<section id="decisions">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">04 · Can we update or overwrite a previous decision?</div>
+      <h2>What happens to the old decision</h2>
+      <p class="lede">Every system lets you change a decision. They differ in what they keep. Pick a strategy and apply the same change to see the difference: the team switched from <code>jsonwebtoken</code> to <code>jose</code>.</p>
+    </div>
+    <div class="dec-grid">
+      <div class="strat" id="strat" role="group" aria-label="Update strategy">
+        <button aria-pressed="true" data-s="replace"><b>Replace</b><span>Mem0 · Hermes built-in · Holographic</span></button>
+        <button aria-pressed="false" data-s="invalidate"><b>Invalidate with history</b><span>Graphiti / Zep</span></button>
+        <button aria-pressed="false" data-s="supersede"><b>Supersede / version</b><span>agentmemory · Supermemory · Hindsight</span></button>
+        <button aria-pressed="false" data-s="git"><b>Git history</b><span>Letta · ByteRover</span></button>
+      </div>
+      <div class="panel">
+        <div class="stage dec-stage" id="decStage"></div>
+        <div class="stage-bar">
+          <button class="btn primary" id="playDec"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Apply change</button>
+          <button class="btn" id="resetDec">Reset</button>
+          <div class="caption" id="capDec"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cmp" style="margin-top:24px;align-items:start">
+      <div>
+        <h3>Our recommendation: never overwrite</h3>
+        <p class="muted" style="margin-top:8px">Store each decision as a record, in the style of an Architecture Decision Record. Search returns only <code>active</code> decisions by default. The history stays available for "why did we switch?"</p>
+      </div>
+<pre class="yaml"><span class="k">id</span>: dec-042
+<span class="k">decision</span>: "Use jose instead of jsonwebtoken"
+<span class="k">status</span>: active            <span class="c"># active | superseded</span>
+<span class="k">supersedes</span>: dec-017
+<span class="k">author</span>: user@org
+<span class="k">commit</span>: a1b2c3d
+<span class="k">reason</span>: "Edge runtime compatibility"</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 5 PARALLEL -->
+<section id="parallel">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">05 · How do parallel agents avoid colliding?</div>
+      <h2>Git and the orchestrator keep work correct. Memory keeps agents informed.</h2>
+      <p class="lede">None of these memory tools offers locking or task ownership. When several agents work at once, collisions are prevented by how the work is split and merged. Memory's job is to let each agent see what the others are doing.</p>
+    </div>
+    <div class="panel">
+      <div class="stage chart-scroll">
+        <svg class="par-svg" id="par" viewBox="0 0 980 430" role="img" aria-label="Planner merges contracts, fans out three agents in separate worktrees with leases, a shared work ledger, and an integrator that merges, tests, dedupes and promotes memory."></svg>
+      </div>
+      <div class="stage-bar">
+        <button class="btn primary" id="playPar"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Play</button>
+        <div class="steps" id="stepsPar"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="caption" id="capPar">Press play to run three agents on one feature.</div>
+      </div>
+    </div>
+    <div class="rules" id="rules">
+      <div class="rule"><b>Split by ownership</b>The planner gives each subtask the files it owns, plus read-only interfaces. Overlapping files run one after another, or merge into one task.</div>
+      <div class="rule"><b>Isolate with git worktrees</b>Each run gets its own worktree and branch. Changes come back only through merges.</div>
+      <div class="rule"><b>Enforce with leases</b>A lease table in Postgres or Redis records which agent holds which path, and until when. A pre-commit check rejects writes outside held paths.</div>
+      <div class="rule"><b>Share a work ledger</b>Before building a helper, an agent searches the ledger ("is anyone building a retry wrapper?") and registers its own work.</div>
+      <div class="rule"><b>Define contracts first</b>Interfaces, types and API stubs are merged before fan-out. Agents code against a fixed contract.</div>
+      <div class="rule"><b>Integrate in a final step</b>One agent or CI job merges branches, resolves conflicts, runs the full test suite and scans for near-duplicate code.</div>
+      <div class="rule"><b>Write memory narrowly during runs</b>Parallel runs write to run scope. Only the integration step promotes verified learnings to repo or org scope.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 TOOL CALLS -->
+<section id="toolcalls">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">06 · How are tool calls stored, and why bother?</div>
+      <h2>From a raw log to a lesson the next run can use</h2>
+      <p class="lede">Every command an agent runs produces a record: the tool, its arguments, the output and the exit code. Memory systems compress that record into a short observation, index it for search, and keep the raw log as evidence.</p>
+    </div>
+    <div class="panel">
+      <div class="stage">
+        <div class="pipe" id="pipe">
+          <div class="pstep"><span class="lbl">1 · Raw event</span><div class="body">tool: bash<br>cmd: pnpm prisma migrate dev<br>exit: 1<br>stderr: P3006 column "org_id" cannot be null … (412 lines)</div><span class="sz">~6,200 tokens</span></div>
+          <div class="pstep"><span class="lbl">2 · Observation</span><div class="body">Migration 0042 failed: org_id NOT NULL on existing rows. Fixed by backfilling org_id before adding the constraint.</div><span class="sz">~40 tokens</span></div>
+          <div class="pstep"><span class="lbl">3 · Indexed</span><div class="body">tags: prisma, migration, org_id<br>scope: repo/billing-api<br>embedding + keywords</div><span class="sz">searchable</span></div>
+          <div class="pstep"><span class="lbl">4 · Provenance kept</span><div class="body">run: r-8812<br>commit: 9f4e2a1<br>author: agent-2<br>raw log → cold storage</div><span class="sz">auditable</span></div>
+        </div>
+        <div class="query" id="pipeQuery" style="margin-top:16px;opacity:.35;transition:opacity .4s"><span class="muted">next run asks:</span> <span id="pipeQ">"adding a NOT NULL column in a migration"</span> → <span id="pipeA" style="color:var(--accent-ink)"></span></div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn primary" id="playPipe"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Play</button>
+        <div class="steps" id="stepsPipe"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="caption" id="capPipe">Press play to follow one failed migration through the pipeline.</div>
+      </div>
+    </div>
+    <div class="tools-note">
+      <div><b>claude-mem</b> hooks capture each tool call into SQLite. A worker compresses them into summaries.</div>
+      <div><b>Hermes</b> stores every session in SQLite with full-text search over the raw messages.</div>
+      <div><b>Hindsight</b> keeps a separate "experiences" network for the agent's own actions.</div>
+    </div>
+    <div class="benefits">
+      <div class="benefit"><b>No repeated failures</b><span>"Tried A, tests failed" means the next run skips A.</span></div>
+      <div class="benefit"><b>Real procedures captured</b><span>Which commands actually build, test and deploy. Promote them to CLAUDE.md.</span></div>
+      <div class="benefit"><b>Audit trail</b><span>What ran, when, on which commit, and why.</span></div>
+      <div class="benefit"><b>Token savings</b><span>Short observations replace re-reading logs or re-exploring code.</span></div>
+      <div class="benefit"><b>Training signal</b><span>Successes and failures feed prompt, skill and eval improvements.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 PICK -->
+<section id="pick">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">07 · Recommendation</div>
+      <h2>What we'd run for an org-shared coding pipeline on VMs</h2>
+      <p class="lede">Two kinds of memory, kept separate. Curated knowledge that people review like code, and learned knowledge that agents build up as they work.</p>
+    </div>
+    <div class="arch">
+      <div class="layer"><div class="lname">Always-on rules</div><div class="ldesc">A short <code>CLAUDE.md</code> per repo: commands, conventions, hard rules. Loaded in full every session.</div><div class="lpick">CLAUDE.md</div></div>
+      <div class="layer"><div class="lname">Curated repo knowledge</div><div class="ldesc">A git-backed context tree of architecture notes and decisions, changed through reviewed pull requests.</div><div class="lpick">Letta / ByteRover style</div></div>
+      <div class="layer core"><div class="lname">Learned &amp; episodic memory</div><div class="ldesc">What agents discovered while working: failures, fixes, procedures. Self-hosted on Postgres, searched per task.</div><div class="lpick">Hindsight</div></div>
+      <div class="layer"><div class="lname">Alternatives</div><div class="ldesc">Graphiti when you must audit "what was true when". Mem0 when you want a managed service and a large ecosystem.</div><div class="lpick">Graphiti · Mem0</div></div>
+    </div>
+    <h3 style="margin-top:34px">Scopes, from widest to narrowest</h3>
+    <div class="scopes">
+      <div class="scope"><b>Org</b><span>Company-wide conventions</span><span class="who">promoted after review</span></div>
+      <div class="scope"><b>Repo</b><span>One codebase's facts and decisions</span><span class="who">promoted by integrator</span></div>
+      <div class="scope"><b>User</b><span>One developer's preferences</span><span class="who">written by their agents</span></div>
+      <div class="scope"><b>Run</b><span>One agent's working notes</span><span class="who">written during the run</span></div>
+    </div>
+    <h3 style="margin-top:34px">Must-haves before rollout</h3>
+    <div class="must">
+      <div><b>Scopes</b>org → repo → user → run, so a run's guesses never leak org-wide.</div>
+      <div><b>Write review</b>A review step before anything is promoted to org scope.</div>
+      <div><b>Injection and secret scanning</b>Memory is prompt input. Scan it like untrusted input.</div>
+      <div><b>Provenance</b>Every memory carries commit SHA, author and run ID.</div>
+    </div>
+    <div class="callout"><b>Next step.</b> Run a bake-off of the finalists (Hindsight, Graphiti, Mem0) on our own pipeline traces before committing. Public benchmarks test chat recall, not coding.</div>
+  </div>
+</section>
+</main>
+<footer><div class="wrap">Sources: vendor docs and repositories, public benchmark reports and independent re-runs, as of September 2026. Benchmarks are self-reported unless marked.</div></footer>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+(function(){
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent, text){ const e=document.createElementNS(NS,tag); for(const k in attrs){ const v=attrs[k]; if((k==='fill'||k==='stroke')&&String(v).includes('var(')) e.style[k]=v; else e.setAttribute(k,v); } if(text!=null) e.textContent=text; if(parent) parent.appendChild(e); return e; }
+function setSteps(id,n){ document.querySelectorAll('#'+id+' i').forEach((d,i)=>d.classList.toggle('on',i<n)); }
+function runner(btn, fn){ let running=false; btn.addEventListener('click', async ()=>{ if(running) return; running=true; btn.disabled=true; try{ await fn(); } finally { running=false; btn.disabled=false; } }); }
+
+document.querySelectorAll('svg [fill*="var("], svg [stroke*="var("]').forEach(n=>{ ['fill','stroke'].forEach(a=>{ const v=n.getAttribute(a); if(v&&v.includes('var(')){ n.style[a]=v; n.removeAttribute(a);} }); });
+/* ---------- hero loop text ---------- */
+if(!reduce){
+  const notes=[['Session 1','tool calls, results, fixes','"npm test needs NODE_ENV=test"'],['Session 2','recalled before work starts','skips the failing test command'],['Session 3','new lesson captured','"billing-api uses jose, not jsonwebtoken"']];
+  let k=0; const nodes=['#ln0','#ln1','#ln2','#ln3'];
+  setInterval(()=>{ k=(k+1)%3; $('#loopMid').textContent=notes[k][0]; $('#loopSub').textContent=notes[k][1]; $('#loopNote').textContent=notes[k][2]; },7000);
+  let j=0; setInterval(()=>{ nodes.forEach((n,i)=>{ const r=$(n+' rect'); r.style.stroke= i===j?'var(--accent)':'var(--line-2)'; r.setAttribute('stroke-width', i===j?'2':'1'); }); j=(j+1)%4; },1750);
+} else { $('#loopDot').remove(); }
+
+/* ---------- 1. landscape ---------- */
+const TOOLS=[
+ {n:'Hermes built-in',k:'Markdown + SQLite',t:['local'],mem:'MEMORY.md (2,200 chars) + USER.md (1,375 chars), frozen into the prompt at session start. SQLite FTS5 search over past sessions.',stack:'Markdown + SQLite',bench:'None',v:'Solid baseline for one agent. Not shareable.'},
+ {n:'claude-mem',k:'SQLite FTS5 · Chroma',t:['local'],mem:'Hooks capture tool use. A worker compresses it into summaries that are injected next session. Search over MCP.',stack:'TypeScript, Bun, Express, SQLite FTS5, optional Chroma, Claude Agent SDK',bench:'None published',v:'Most popular (~58k GitHub stars in Apr 2026), but single-user and Claude Code only.'},
+ {n:'Holographic',k:'Hermes plugin · SQLite',t:['local'],mem:'Local fact store with trust scores, entity resolution and HRR algebraic retrieval.',stack:'SQLite + optional NumPy, zero external services',bench:'None',v:'Light and local only.'},
+ {n:'agentmemory',k:'BM25 + vector + graph',t:['local','bench'],mem:'Auto-capture hooks. BM25 + vector + graph retrieval. Memories supersede each other; stale facts are marked.',stack:'iii engine, no external DB, MCP server',bench:'95.2% R@5 (retrieval only)',v:'Good design for coding agents. Young project.'},
+ {n:'Mem0',k:'Vector + optional graph',t:['shared','bench'],mem:'An LLM extracts facts, then adds, updates or forgets them. Vector store plus optional graph.',stack:'Python/JS SDKs, Qdrant or pgvector, optional graph DB',bench:'LoCoMo 91.6, LongMemEval 93.4 (managed platform only). Independent study: 77–81 LoCoMo.',v:'Market leader by adoption. Safest mainstream pick.'},
+ {n:'Zep / Graphiti',k:'Temporal knowledge graph',t:['shared','graph','bench'],mem:'Temporal knowledge graph: every edge has a validity window. No LLM call at query time.',stack:'Python/TS/Go SDKs; Neo4j, FalkorDB or Kuzu',bench:'DMR 94.8; LongMemEval 63.8–71.2; LoCoMo disputed (58–84), independent 55–56.',v:'Best at "what was true when". Heavier to self-host.'},
+ {n:'Hindsight',k:'Embedded Postgres',t:['shared','bench'],pick:true,mem:'Four networks: facts, experiences, observations, opinions. Retain / recall / reflect with four parallel retrievers.',stack:'Python, embedded Postgres, MIT licence, MCP-first',bench:'LongMemEval 91.4, LoCoMo 89.6',v:'Easiest to self-host as a shared service. Our pick.'},
+ {n:'Supermemory',k:'Hosted API · pgvector',t:['shared','bench'],mem:'One API for ingestion, contradiction handling and recall. Container tags scope memory to user, project or org.',stack:'Cloudflare Workers, Postgres + pgvector (per open-source repo)',bench:'LongMemEval-S 81.6 (QA), 95 (Recall@15). The widely shared "99%" post was a parody.',v:'Fast, many connectors, cloud-first.'},
+ {n:'Cognee',k:'Document knowledge graph',t:['shared','graph','bench'],mem:'Builds a knowledge graph from documents (Cognify) and refines it with feedback (Memify). Remember / recall / improve / forget.',stack:'Python; SQLite + LanceDB + Kuzu, or a single Postgres',bench:'BEAM 79; independent LoCoMo 55–56',v:'Best for documents and knowledge bases, less for agent experience.'},
+ {n:'Letta',k:'Core blocks + git MemFS',t:['shared','git'],mem:'Self-edited core blocks plus an archival vector store. Letta Code keeps memory in git, with background "sleep-time" reflection.',stack:'Python server, Postgres + pgvector, git-backed MemFS',bench:'No LongMemEval; LoCoMo 74 (unverified, reported by a competitor)',v:'Great ideas, but adopting it means adopting its agent runtime.'},
+ {n:'OpenViking',k:'ByteDance · virtual FS',t:['bench'],mem:'viking:// virtual filesystem. L0/L1/L2 detail tiers loaded on demand. Directory-first retrieval.',stack:'Python + Rust; needs a vision-language model and an embedding model',bench:'52% task completion with 91% fewer tokens than plain RAG (LoCoMo subset)',v:'Promising, still early-stage.'},
+ {n:'ByteRover',k:'Markdown tree + git VC',t:['git','local','bench'],mem:'Markdown context tree with git-style version control (brv vc) and push/pull for team sharing.',stack:'TypeScript + Rust, MIT licence, CLI',bench:'LoCoMo 96.1, LongMemEval-S 92.8',v:'The most coding- and team-focused option.'}
+];
+const toolsEl=$('#tools'), detail=$('#detail');
+let sel=6;
+TOOLS.forEach((t,i)=>{
+  const b=document.createElement('button'); b.className='tool'; b.dataset.i=i; b.setAttribute('aria-pressed', i===sel);
+  b.innerHTML=`<span class="t-name">${t.n}${t.pick?'<span class="tag">Our pick</span>':''}</span><span class="t-kind">${t.k}</span>`;
+  b.onclick=()=>{ sel=i; document.querySelectorAll('.tool').forEach(x=>x.setAttribute('aria-pressed', x===b)); showDetail(); };
+  toolsEl.appendChild(b);
+});
+function showDetail(){ const t=TOOLS[sel];
+  detail.innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h3 style="font-size:1.3rem">${t.n}</h3>${t.pick?'<span class="tag">Our pick</span>':''}</div>
+  <dl><div><dt>How it remembers</dt><dd>${t.mem}</dd></div><div><dt>Stack</dt><dd>${t.stack}</dd></div><div><dt>Benchmarks</dt><dd>${t.bench}</dd></div></dl>
+  <div class="verdict"><span class="eyebrow" style="display:block;margin-bottom:3px">Verdict</span>${t.v}</div>`;
+  if(!reduce){ detail.animate([{opacity:.3,transform:'translateY(4px)'},{opacity:1,transform:'none'}],{duration:250,easing:'ease-out'}); }
+}
+showDetail();
+document.querySelectorAll('#filters .chip').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('#filters .chip').forEach(x=>x.setAttribute('aria-pressed', x===c));
+  const f=c.dataset.f; document.querySelectorAll('.tool').forEach((b,i)=>b.classList.toggle('dim', f!=='all' && !TOOLS[i].t.includes(f)));
+});
+
+/* benchmark dot plot */
+const BENCH={
+ locomo:{title:'LoCoMo scores: what vendors claim vs. what others measured', rows:[
+  {n:'ByteRover',pts:[{t:'claim',v:96.1}]},
+  {n:'Mem0',pts:[{t:'claim',v:91.6,src:'Managed platform only'},{t:'ind',lo:77,hi:81}]},
+  {n:'Hindsight',pts:[{t:'claim',v:89.6}]},
+  {n:'Letta',pts:[{t:'comp',v:74,src:'Unverified, published by a competitor'}]},
+  {n:'Zep / Graphiti',pts:[{t:'claim',lo:58,hi:84,src:'Disputed range'},{t:'ind',lo:55,hi:56}]},
+  {n:'Cognee',pts:[{t:'ind',lo:55,hi:56}]}], min:50,max:100},
+ lme:{title:'LongMemEval scores (all self-reported)', rows:[
+  {n:'Mem0',pts:[{t:'claim',v:93.4,src:'Managed platform only'}]},
+  {n:'ByteRover',pts:[{t:'claim',v:92.8,src:'LongMemEval-S variant'}]},
+  {n:'Hindsight',pts:[{t:'claim',v:91.4}]},
+  {n:'Supermemory',pts:[{t:'claim',v:81.6,src:'LongMemEval-S, QA accuracy'}]},
+  {n:'Zep / Graphiti',pts:[{t:'claim',lo:63.8,hi:71.2}]}], min:50,max:100}
+};
+const svg=$('#bench'), tip=$('#tip');
+function showTip(e,txt){ tip.textContent=txt; tip.style.opacity=1; tip.style.left=Math.min(e.clientX+12, innerWidth-250)+'px'; tip.style.top=(e.clientY+14)+'px'; }
+function hideTip(){ tip.style.opacity=0; }
+function drawBench(key){
+  const d=BENCH[key]; $('#benchTitle').textContent=d.title;
+  svg.innerHTML=''; const L=140,R=730,T=20,rowH=40; const H=T+d.rows.length*rowH+34;
+  svg.setAttribute('viewBox',`0 0 760 ${H}`);
+  const x=v=>L+(v-d.min)/(d.max-d.min)*(R-L);
+  const ax=el('g',{class:'axis'},svg);
+  for(let v=d.min; v<=d.max; v+=10){ el('line',{x1:x(v),x2:x(v),y1:T-6,y2:T+d.rows.length*rowH,stroke:'var(--grid)','stroke-width':1},ax); el('text',{x:x(v),y:T+d.rows.length*rowH+20,'text-anchor':'middle'},ax,v); }
+  d.rows.forEach((r,i)=>{
+    const y=T+i*rowH+rowH/2;
+    el('text',{x:L-14,y:y+4,'text-anchor':'end','font-weight':600,style:'fill:var(--ink)'},svg,r.n);
+    el('line',{x1:L,x2:R,y1:y,y2:y,stroke:'var(--grid)','stroke-dasharray':'2 4'},svg);
+    r.pts.forEach((p,pi)=>{
+      const g=el('g',{style:'cursor:default'},svg);
+      const color=p.t==='claim'?'var(--accent)':p.t==='ind'?'var(--ink)':'var(--muted)';
+      const lbl=(p.lo!=null?`${p.lo}–${p.hi}`:p.v);
+      if(p.lo!=null){ el('line',{x1:x(p.lo),x2:x(p.hi),y1:y,y2:y,stroke:color,'stroke-width':p.t==='claim'?4:3,'stroke-linecap':'round',opacity:p.t==='claim'?.55:1},g); }
+      const cx=p.lo!=null?(p.t==='ind'?x(p.lo):x(p.hi)):x(p.v);
+      const dots=p.lo!=null?[x(p.lo),x(p.hi)]:[x(p.v)];
+      dots.forEach(dx=>{
+        if(p.t==='claim') el('circle',{cx:dx,cy:y,r:6.5,fill:color,stroke:'var(--surface)','stroke-width':2},g);
+        else if(p.t==='ind') el('circle',{cx:dx,cy:y,r:5.5,fill:'var(--surface)',stroke:color,'stroke-width':2.5},g);
+        else el('circle',{cx:dx,cy:y,r:5.5,fill:'var(--surface)',stroke:color,'stroke-width':2,'stroke-dasharray':'3 2'},g);
+      });
+      const lx=p.t==='ind' && p.lo!=null ? x(p.lo)-10 : (p.lo!=null?x(p.hi)+12:x(p.v)+12);
+      el('text',{x:lx,y:y-9,'text-anchor':p.t==='ind'?'end':'start',style:'font-family:var(--mono);font-size:11px;fill:var(--ink-2)'},g,lbl);
+      el('rect',{x:Math.min(...dots)-12,y:y-14,width:Math.max(...dots)-Math.min(...dots)+24,height:28,fill:'transparent'},g);
+      const kind=p.t==='claim'?'Self-reported':p.t==='ind'?'Independent study':'Reported by a competitor';
+      g.addEventListener('pointermove',e=>showTip(e,`${r.n}: ${lbl} · ${kind}${p.src?' · '+p.src:''}`)); g.addEventListener('pointerleave',hideTip);
+      if(!reduce) g.animate([{opacity:0,transform:'translateX(-10px)'},{opacity:1,transform:'none'}],{duration:450,delay:i*70+pi*120,easing:'ease-out',fill:'backwards'});
+    });
+  });
+}
+drawBench('locomo');
+document.querySelectorAll('[data-b]').forEach(c=>c.onclick=()=>{ document.querySelectorAll('[data-b]').forEach(x=>x.setAttribute('aria-pressed',x===c)); drawBench(c.dataset.b); });
+
+/* ---------- 2. files vs service ---------- */
+const MEMS=['pnpm, not npm','billing uses jose','migration 0042 fix','flaky e2e: retry 2x','staging DB is read-only','prefer zod','auth tokens expire 15m','docker needs --platform','api rate limit 100/s','CI caches node_modules','old: jsonwebtoken','owner of /payments','feature flags via Unleash','S3 bucket per env','timezones stored UTC','cron runs at 02:00','legacy v1 routes','PR needs 2 reviews','logger: pino','OpenAPI in /spec'];
+const HITS=[1,6,10];
+const pool=$('#pool'); MEMS.forEach(m=>{ const s=document.createElement('span'); s.className='mem'; s.textContent=m; pool.appendChild(s); });
+function resetCmp(){ $('#ctxA').querySelectorAll('.cl').forEach(n=>n.remove()); $('#ctxB').querySelectorAll('.cl').forEach(n=>n.remove()); $('#meterA').style.width='0'; $('#meterB').style.width='0'; pool.querySelectorAll('.mem').forEach(m=>m.classList.remove('hit')); $('#qtext').textContent=''; setSteps('stepsCmp',0); }
+function flyTo(src, dest, html, cls){
+  const a=src.getBoundingClientRect(), b=dest.getBoundingClientRect();
+  const clone=document.createElement('div'); clone.className='fly '+(cls||''); clone.innerHTML=html; clone.style.left=a.left+'px'; clone.style.top=a.top+'px'; clone.style.width=a.width+'px';
+  document.body.appendChild(clone);
+  const n=dest.querySelectorAll('.cl').length;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ clone.style.transform=`translate(${b.left+10-a.left}px, ${b.top+28+n*30-a.top}px) scale(.96)`; }));
+  return sleep(750).then(()=>clone.remove());
+}
+function addCl(dest, html, cls){ const d=document.createElement('div'); d.className='cl '+(cls||''); d.innerHTML=html; dest.appendChild(d); if(!reduce) d.animate([{opacity:0},{opacity:1}],{duration:200}); return d; }
+runner($('#playCmp'), async ()=>{
+  resetCmp(); const cap=$('#capCmp');
+  cap.innerHTML='<b>Session starts.</b> Claude Code reads CLAUDE.md and auto memory and loads all of it.'; setSteps('stepsCmp',1);
+  await flyTo($('#fileA'), $('#ctxA'), $('#fileA').innerHTML, 'filebox');
+  addCl($('#ctxA'), $('#fileA').innerHTML, 'filebox'); $('#meterA').style.width='72%';
+  await sleep(900);
+  cap.innerHTML='<b>The memory service waits for the task.</b> It holds thousands of memories but loads none yet.'; setSteps('stepsCmp',2);
+  const q='Add token refresh to the billing API'; for(let i=1;i<=q.length;i++){ $('#qtext').textContent=q.slice(0,i); await sleep(28); }
+  await sleep(400);
+  cap.innerHTML='<b>Search runs against the task.</b> Three memories match: the library in use, the token lifetime, and the old decision it replaced.'; setSteps('stepsCmp',3);
+  const mems=pool.querySelectorAll('.mem'); for(const h of HITS){ mems[h].classList.add('hit'); await sleep(260); }
+  await sleep(500);
+  for(const h of HITS){ await flyTo(mems[h], $('#ctxB'), mems[h].textContent, 'mem hit'); addCl($('#ctxB'), mems[h].textContent, 'mem hit').style.alignSelf='flex-start'; }
+  $('#meterB').style.width='9%';
+  cap.innerHTML='<b>Result.</b> The file approach spends context on every rule, relevant or not. The service loads only what this task needs, so it can hold far more.'; setSteps('stepsCmp',4);
+});
+
+/* ---------- 3. lifecycle ---------- */
+const life=$('#life');
+(function buildLife(){
+  const y=150;
+  el('line',{x1:40,x2:860,y1:y,y2:y,stroke:'var(--line-2)','stroke-width':2},life);
+  const marks=[[70,'Task start'],[330,'Working'],[620,'Session end'],[830,'Idle']];
+  marks.forEach(([x,t])=>{ el('circle',{cx:x,cy:y,r:5,fill:'var(--line-2)'},life); el('text',{x,y:y+26,'text-anchor':'middle','font-size':12,style:'fill:var(--muted);font-family:var(--mono)'},life,t); });
+  // memory store
+  el('rect',{x:370,y:232,width:160,height:44,rx:8,fill:'var(--cool-soft)',stroke:'var(--cool)'},life);
+  el('text',{x:450,y:259,'text-anchor':'middle','font-size':13,'font-weight':600,style:'fill:var(--ink)'},life,'Memory store');
+  el('text',{x:450,y:20,'text-anchor':'middle','font-size':11,style:'fill:var(--muted);font-family:var(--mono);letter-spacing:.1em'},life,'READ ↑   ·   WRITE ↓');
+  // agent tag
+  const ag=el('g',{id:'lifeAgent'},life); el('rect',{x:-30,y:-14,width:60,height:28,rx:6,fill:'var(--ink)'},ag); el('text',{x:0,y:5,'text-anchor':'middle','font-size':12,'font-weight':600,style:'fill:var(--bg)'},ag,'Agent');
+  ag.setAttribute('transform',`translate(70 ${y})`);
+})();
+function lifeCallout(x, above, title, sub, color){
+  const g=el('g',{class:'lc'},life); const y=above?40:186; const w=210;
+  const bx=Math.max(8,Math.min(900-w-8,x-w/2));
+  el('rect',{x:bx,y,width:w,height:52,rx:7,fill:'var(--surface)',stroke:color,'stroke-width':1.5},g);
+  el('text',{x:bx+12,y:y+21,'font-size':13,'font-weight':600,style:'fill:var(--ink)'},g,title);
+  el('text',{x:bx+12,y:y+39,'font-size':11,style:'fill:var(--muted);font-family:var(--mono)'},g,sub);
+  if(!reduce) g.animate([{opacity:0,transform:`translateY(${above?-8:8}px)`},{opacity:1,transform:'none'}],{duration:350,easing:'ease-out'});
+  return g;
+}
+function packet(x1,y1,x2,y2,color){
+  const c=el('circle',{cx:x1,cy:y1,r:6,fill:color},life);
+  if(reduce){ c.remove(); return Promise.resolve(); }
+  const a=c.animate([{transform:'translate(0,0)'},{transform:`translate(${x2-x1}px,${y2-y1}px)`}],{duration:700,easing:'ease-in-out'});
+  return a.finished.then(()=>c.remove());
+}
+function moveAgent(x){ const ag=$('#lifeAgent'); const from=ag.getAttribute('transform'); ag.setAttribute('transform',`translate(${x} 150)`); if(!reduce){ const fx=+from.match(/translate\(([\d.]+)/)[1]; ag.animate([{transform:`translate(${fx}px,150px)`},{transform:`translate(${x}px,150px)`}],{duration:900,easing:'ease-in-out'}); } return sleep(900); }
+function litMode(i){ document.querySelectorAll('.mode').forEach((m,k)=>m.classList.toggle('lit',k===i)); }
+runner($('#playLife'), async ()=>{
+  life.querySelectorAll('.lc').forEach(n=>n.remove()); litMode(-1); await moveAgent(70); const cap=$('#capLife');
+  setSteps('stepsLife',1); cap.innerHTML='<b>Push.</b> Before the agent starts, the conventions and active decisions for the files in scope are injected into its prompt.';
+  await packet(450,232,70,164,'var(--cool)'); lifeCallout(110,true,'Push: auto-recall','conventions + active decisions','var(--cool)');
+  await sleep(1400);
+  setSteps('stepsLife',2); cap.innerHTML='<b>Write on every event.</b> Hooks capture each tool call as it happens.'; litMode(0);
+  await moveAgent(250);
+  for(const x of [250,300,350]){ packet(x,164,450,232,'var(--accent)'); await sleep(260); }
+  lifeCallout(250,false,'Capture on every event','bash · edit · test results','var(--accent)');
+  await sleep(1400);
+  setSteps('stepsLife',3); cap.innerHTML='<b>Pull.</b> Mid-task, the agent hits something unfamiliar and calls a search tool.';
+  await moveAgent(420); await packet(420,164,450,232,'var(--cool)'); await packet(450,232,420,164,'var(--cool)');
+  lifeCallout(440,true,'Pull: agent searches','"how did we fix migration 0042?"','var(--cool)');
+  await sleep(1400);
+  setSteps('stepsLife',4); cap.innerHTML='<b>Explicit save.</b> At the end of the task a lesson is saved on purpose.'; litMode(2);
+  await moveAgent(620); await packet(620,164,470,232,'var(--accent)');
+  lifeCallout(640,false,'Explicit: curate','"use pnpm --filter for monorepo tests"','var(--accent)');
+  await sleep(1400);
+  setSteps('stepsLife',5); cap.innerHTML='<b>Background reflection.</b> While idle, a reflection pass merges and cleans up what was captured.'; litMode(1);
+  await moveAgent(830); lifeCallout(760,true,'Background reflection','merge duplicates · mark stale','var(--accent)');
+  await packet(830,164,510,232,'var(--accent)');
+  cap.innerHTML='<b>Done.</b> Two ways to read (push, pull) and three ways to write, all in one task.';
+});
+
+/* ---------- 4. decisions ---------- */
+const decStage=$('#decStage'); let strat='replace';
+const OLD=`<span class="k">id:</span> dec-017<br><span class="k">decision:</span> <span class="val">"Use jsonwebtoken for auth tokens"</span>`;
+const NEW=`<span class="k">id:</span> dec-042<br><span class="k">decision:</span> "Use jose instead of jsonwebtoken"<br><span class="k">reason:</span> "Edge runtime compatibility"`;
+const CAP={
+  replace:'The old fact is overwritten or removed. Search is simple, but nobody can later ask why the team switched.',
+  invalidate:'The old fact is marked invalid and keeps its validity window. You can ask what was true on any date.',
+  supersede:'The new version replaces the old one in search. The old version stays as history.',
+  git:'Memory is files in git. Every change is a commit with history, blame and rollback.'
+};
+function resetDec(){
+  decStage.innerHTML='';
+  if(strat==='git'){ decStage.innerHTML=`<div class="card-dec" id="dOld"><span class="st active">file</span><span class="k"># decisions/auth.md</span><br><span class="val">Use jsonwebtoken for auth tokens</span></div><div class="gitlog" id="glog"><div><span class="h">e71c0d4</span> add auth decision · 2026-03-02</div></div>`; }
+  else decStage.innerHTML=`<div class="card-dec" id="dOld"><span class="st active">active</span>${OLD}</div>`;
+  $('#capDec').textContent='Press "Apply change" to record the switch to jose.';
+}
+async function playDec(){
+  resetDec(); await sleep(200); const old=$('#dOld'); const cap=$('#capDec');
+  if(strat==='git'){
+    old.innerHTML=`<span class="st active">file</span><span class="k"># decisions/auth.md</span><br><span class="val" style="color:var(--bad);text-decoration:line-through">Use jsonwebtoken for auth tokens</span><br><span style="color:var(--good)">Use jose (edge runtime compatibility)</span>`;
+    await sleep(700);
+    const line=document.createElement('div'); line.innerHTML='<span class="h">a1b2c3d</span> switch auth to jose · 2026-09-12 · user@org'; $('#glog').prepend(line);
+    if(!reduce) line.animate([{opacity:0,transform:'translateY(-8px)'},{opacity:1,transform:'none'}],{duration:400});
+    await sleep(500); const l2=document.createElement('div'); l2.className='muted'; l2.textContent='$ git blame decisions/auth.md  ·  git revert a1b2c3d available'; $('#glog').appendChild(l2);
+    cap.textContent=CAP.git; return;
+  }
+  const nw=document.createElement('div'); nw.className='card-dec enter'; nw.innerHTML=`<span class="st active">active</span>${NEW}`;
+  decStage.prepend(nw); await sleep(30); nw.classList.remove('enter'); await sleep(700);
+  if(strat==='replace'){
+    old.querySelector('.st').className='st gone'; old.querySelector('.st').textContent='deleted'; await sleep(700); old.classList.add('vanish');
+    await sleep(700); const q=document.createElement('div'); q.className='chain'; q.textContent='query "why not jsonwebtoken?" → no record found'; decStage.appendChild(q);
+  } else if(strat==='invalidate'){
+    old.classList.add('struck','faded'); old.querySelector('.st').className='st gone'; old.querySelector('.st').textContent='invalid';
+    old.insertAdjacentHTML('beforeend','<br><span class="k">valid:</span> 2026-03-02 → 2026-09-12');
+    nw.insertAdjacentHTML('beforeend','<br><span class="k">valid:</span> 2026-09-12 → now');
+    await sleep(500); const q=document.createElement('div'); q.className='chain'; q.textContent='query "auth library on 2026-06-01?" → jsonwebtoken'; decStage.appendChild(q);
+  } else {
+    old.classList.add('faded'); old.querySelector('.st').className='st old'; old.querySelector('.st').textContent='superseded';
+    nw.insertAdjacentHTML('beforeend','<br><span class="k">supersedes:</span> dec-017');
+    const ch=document.createElement('div'); ch.className='chain'; ch.textContent='↓ version history: dec-042 replaced dec-017'; old.before(ch);
+  }
+  cap.textContent=CAP[strat];
+}
+document.querySelectorAll('#strat button').forEach(b=>b.onclick=()=>{ document.querySelectorAll('#strat button').forEach(x=>x.setAttribute('aria-pressed',x===b)); strat=b.dataset.s; resetDec(); playDec(); });
+runner($('#playDec'), playDec); $('#resetDec').onclick=resetDec; resetDec();
+
+/* ---------- 5. parallel ---------- */
+const par=$('#par');
+function box(x,y,w,h,title,sub,opts={}){ const g=el('g',{class:'bx',...(opts.id?{id:opts.id}:{})},par); el('rect',{x,y,width:w,height:h,rx:8,fill:opts.fill||'var(--surface)',stroke:opts.stroke||'var(--line-2)','stroke-width':1.5},g); el('text',{x:x+w/2,y:y+(sub?h/2-2:h/2+5),'text-anchor':'middle','font-size':14,'font-weight':600,style:'font-family:var(--display)'},g,title); if(sub) el('text',{x:x+w/2,y:y+h/2+16,'text-anchor':'middle',class:'sm'},g,sub); return g; }
+function wire(d,id){ return el('path',{d,fill:'none',stroke:'var(--line-2)','stroke-width':1.5,id,'marker-end':'url(#pah)'},par); }
+(function buildPar(){
+  const defs=el('defs',{},par); const m=el('marker',{id:'pah',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto'},defs); el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--line-2)'},m);
+  box(20,170,120,56,'Planner','splits by owner',{id:'pPlan'});
+  box(175,170,130,56,'Contracts','types · API stubs',{id:'pCon'});
+  const ag=[['Agent A','owns src/auth/**',60],['Agent B','owns src/billing/**',170],['Agent C','owns src/ui/**',280]];
+  ag.forEach(([t,s,y],i)=>{ box(370,y,170,62,t,s,{id:'pA'+i}); el('text',{x:455,y:y+78,'text-anchor':'middle',class:'sm',id:'pL'+i},par,'worktree wt-'+'abc'[i]); });
+  box(620,170,150,56,'Integrator','merge · test · dedupe',{id:'pInt'});
+  box(810,170,150,56,'Promote memory','run → repo / org',{id:'pProm'});
+  box(370,386,170,36,'Work ledger','',{id:'pLed',fill:'var(--cool-soft)',stroke:'var(--cool)'});
+  wire('M140,198 L175,198','w0');
+  ag.forEach(([,,y],i)=>wire(`M305,198 C335,198 340,${y+31} 370,${y+31}`,'wf'+i));
+  ag.forEach(([,,y],i)=>wire(`M540,${y+31} C580,${y+31} 585,198 620,198`,'wm'+i));
+  wire('M770,198 L810,198','wp');
+  // lease table
+  const lt=el('g',{id:'lease',opacity:0},par);
+  el('rect',{x:600,y:20,width:360,height:110,rx:8,fill:'var(--surface)',stroke:'var(--line-2)'},lt);
+  el('text',{x:614,y:42,'font-size':12,'font-weight':600,style:'font-family:var(--mono);fill:var(--muted);letter-spacing:.08em'},lt,'LEASE TABLE');
+  [['src/auth/**','Agent A','until 14:40'],['src/billing/**','Agent B','until 14:40'],['src/ui/**','Agent C','until 14:40']].forEach((r,i)=>{ el('text',{x:614,y:66+i*20,class:'sm',style:'fill:var(--ink-2)'},lt,r[0]); el('text',{x:760,y:66+i*20,class:'sm',style:'fill:var(--ink-2)'},lt,r[1]); el('text',{x:860,y:66+i*20,class:'sm'},lt,r[2]); });
+  el('text',{x:20,y:30,'font-size':12,class:'sm',id:'parNote'},par,'');
+})();
+function lit(id,on,color){ const r=$('#'+id+' rect'); if(!r) return; r.style.stroke= on?(color||'var(--accent)'):'var(--line-2)'; r.setAttribute('stroke-width', on?2.5:1.5); }
+function litWire(id,on){ const w=$('#'+id); w.style.stroke= on?'var(--accent)':'var(--line-2)'; }
+function travel(id,color){ const p=$('#'+id); if(reduce) return Promise.resolve(); const len=p.getTotalLength(); const c=el('circle',{r:5.5,fill:color||'var(--accent)'},par); const t0=performance.now(); const dur=800;
+  return new Promise(res=>{ (function f(now){ const k=Math.min(1,(now-t0)/dur); const pt=p.getPointAtLength(len*k); c.setAttribute('cx',pt.x); c.setAttribute('cy',pt.y); if(k<1) requestAnimationFrame(f); else { c.remove(); res(); } })(t0); }); }
+function travelXY(x1,y1,x2,y2,color){ if(reduce) return Promise.resolve(); const c=el('circle',{cx:x1,cy:y1,r:5,fill:color},par); return c.animate([{transform:'translate(0,0)'},{transform:`translate(${x2-x1}px,${y2-y1}px)`}],{duration:650,easing:'ease-in-out'}).finished.then(()=>c.remove()); }
+function litRule(i){ document.querySelectorAll('.rule').forEach((r,k)=>r.classList.toggle('lit',k===i)); }
+function resetPar(){ ['pPlan','pCon','pA0','pA1','pA2','pInt','pProm'].forEach(i=>lit(i,false)); lit('pLed',true,'var(--cool)'); ['w0','wf0','wf1','wf2','wm0','wm1','wm2','wp'].forEach(w=>litWire(w,false)); $('#lease').setAttribute('opacity',0); par.querySelectorAll('.tmp').forEach(n=>n.remove()); litRule(-1); setSteps('stepsPar',0); }
+function tmpText(x,y,t,color,anchor){ const e=el('text',{x,y,class:'sm tmp','text-anchor':anchor||'middle',style:`fill:${color}`},par,t); if(!reduce) e.animate([{opacity:0},{opacity:1}],{duration:300}); return e; }
+runner($('#playPar'), async ()=>{
+  resetPar(); const cap=$('#capPar');
+  setSteps('stepsPar',1); litRule(0); lit('pPlan',true); cap.innerHTML='<b>Split by ownership.</b> The planner gives each agent a set of files it owns.'; await sleep(1500);
+  setSteps('stepsPar',2); litRule(4); litWire('w0',true); await travel('w0'); lit('pCon',true); cap.innerHTML='<b>Contracts first.</b> Shared types and API stubs are merged before any agent starts.'; await sleep(1500);
+  setSteps('stepsPar',3); litRule(1); cap.innerHTML='<b>Fan out into worktrees.</b> Each agent works on its own branch in its own git worktree.';
+  await Promise.all([0,1,2].map(i=>{ litWire('wf'+i,true); return travel('wf'+i).then(()=>lit('pA'+i,true)); })); await sleep(1100);
+  setSteps('stepsPar',4); litRule(2); $('#lease').setAttribute('opacity',1); if(!reduce) $('#lease').animate([{opacity:0},{opacity:1}],{duration:400});
+  cap.innerHTML='<b>Leases.</b> Agent C tries to edit a billing file. The pre-commit check rejects it: Agent B holds that path.';
+  await travelXY(540,311,540,210,'var(--bad)'); tmpText(548,262,'✕ rejected: src/billing/** leased to B','var(--bad)','start'); await sleep(2000);
+  setSteps('stepsPar',5); litRule(3); cap.innerHTML='<b>Work ledger.</b> Agent A asks "is anyone building a retry wrapper?" Agent B already registered one, so A reuses it.';
+  await travelXY(455,122,455,386,'var(--cool)'); tmpText(548,408,'B: building retryFetch()','var(--cool)','start'); await travelXY(455,386,455,122,'var(--cool)'); tmpText(455,54,'A: reuse retryFetch()','var(--good)'); await sleep(1800);
+  setSteps('stepsPar',6); litRule(5); cap.innerHTML='<b>Integrate.</b> One step merges all branches, runs the full test suite and scans for duplicate code.';
+  await Promise.all([0,1,2].map(i=>{ litWire('wm'+i,true); return travel('wm'+i); })); lit('pInt',true); tmpText(695,152,'tests pass · 0 dupes','var(--good)'); await sleep(1400);
+  setSteps('stepsPar',7); litRule(6); litWire('wp',true); await travel('wp'); lit('pProm',true);
+  cap.innerHTML='<b>Promote memory.</b> Only verified learnings move from run scope to repo or org scope.';
+});
+
+/* ---------- 6. pipeline ---------- */
+runner($('#playPipe'), async ()=>{
+  const steps=document.querySelectorAll('.pstep'); steps.forEach(s=>s.classList.remove('lit','done')); $('#pipeQuery').style.opacity=.35; $('#pipeA').textContent=''; setSteps('stepsPipe',0);
+  const caps=['<b>Raw event.</b> A migration fails. The full record is thousands of tokens of output.','<b>Compress.</b> The record becomes one sentence: what failed, why, and how it was fixed.','<b>Index.</b> The observation is tagged, scoped to the repo, and embedded for search.','<b>Keep provenance.</b> The raw log is kept, linked to the run, commit and author, for audits.'];
+  for(let i=0;i<4;i++){ steps.forEach((s,k)=>s.classList.toggle('lit',k===i)); steps[i].classList.add('done'); setSteps('stepsPipe',i+1); $('#capPipe').innerHTML=caps[i]; await sleep(1700); }
+  steps.forEach(s=>s.classList.remove('lit')); setSteps('stepsPipe',5); $('#pipeQuery').style.opacity=1;
+  const a='backfill the column first, then add NOT NULL (from run r-8812)'; for(let i=1;i<=a.length;i++){ $('#pipeA').textContent=a.slice(0,i); await sleep(18); }
+  $('#capPipe').innerHTML='<b>Next run.</b> A new agent hits the same problem and gets the fix in about 40 tokens instead of re-reading the log.';
+});
+
+/* ---------- nav highlight ---------- */
+const links=[...document.querySelectorAll('#navlinks a')];
+const io=new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting){ links.forEach(l=>l.classList.toggle('on', l.getAttribute('href')==='#'+e.target.id)); } }); },{rootMargin:'-40% 0px -55% 0px'});
+document.querySelectorAll('main section').forEach(s=>io.observe(s));
+})();
+</script>
+</body>
+</html>
