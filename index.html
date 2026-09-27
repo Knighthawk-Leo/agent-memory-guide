@@ -273,6 +273,7 @@ footer{padding-block:40px;color:var(--muted);font-size:.84rem}
       <a href="#parallel">Parallel agents</a>
       <a href="#toolcalls">Tool-call memory</a>
       <a href="#pick">Our pick</a>
+      <a href="integration.html" style="color:var(--accent-ink)">ROS integration →</a>
     </div>
   </div>
 </nav>
@@ -568,6 +569,7 @@ footer{padding-block:40px;color:var(--muted);font-size:.84rem}
       <div><b>Injection and secret scanning</b>Memory is prompt input. Scan it like untrusted input.</div>
       <div><b>Provenance</b>Every memory carries commit SHA, author and run ID.</div>
     </div>
+    <div class="callout" style="margin-top:12px"><b>Integration plan.</b> How Hindsight and OpenViking would plug into the ROS pipeline, and how memory works with the code index and RAG: <a href="integration.html">read the integration page</a>.</div>
     <div class="callout"><b>Next step.</b> Run a bake-off of the finalists (Hindsight, Graphiti, Mem0) on our own pipeline traces before committing. Public benchmarks test chat recall, not coding.</div>
   </div>
 </section>
@@ -602,7 +604,7 @@ const TOOLS=[
  {n:'agentmemory',k:'BM25 + vector + graph',t:['local','bench'],mem:'Auto-capture hooks. BM25 + vector + graph retrieval. Memories supersede each other; stale facts are marked.',stack:'iii engine, no external DB, MCP server',bench:'95.2% R@5 (retrieval only)',v:'Good design for coding agents. Young project.'},
  {n:'Mem0',k:'Vector + optional graph',t:['shared','bench'],mem:'An LLM extracts facts, then adds, updates or forgets them. Vector store plus optional graph.',stack:'Python/JS SDKs, Qdrant or pgvector, optional graph DB',bench:'LoCoMo 91.6, LongMemEval 93.4 (managed platform only). Independent study: 77–81 LoCoMo.',v:'Market leader by adoption. Safest mainstream pick.'},
  {n:'Zep / Graphiti',k:'Temporal knowledge graph',t:['shared','graph','bench'],mem:'Temporal knowledge graph: every edge has a validity window. No LLM call at query time.',stack:'Python/TS/Go SDKs; Neo4j, FalkorDB or Kuzu',bench:'DMR 94.8; LongMemEval 63.8–71.2; LoCoMo disputed (58–84), independent 55–56.',v:'Best at "what was true when". Heavier to self-host.'},
- {n:'Hindsight',k:'Embedded Postgres',t:['shared','bench'],pick:true,mem:'Four networks: facts, experiences, observations, opinions. Retain / recall / reflect with four parallel retrievers.',stack:'Python, embedded Postgres, MIT licence, MCP-first',bench:'LongMemEval 91.4, LoCoMo 89.6',v:'Easiest to self-host as a shared service. Our pick.'},
+ {n:'Hindsight',k:'Embedded Postgres',t:['shared','bench'],pick:true,mem:'Memory types: world facts, experiences, observations (consolidated in the background) and mental models. Retain / recall / reflect, with four parallel retrievers. (Older docs list an opinion network; it has been removed from the code.)',stack:'Python, embedded Postgres, MIT licence, MCP-first',bench:'LongMemEval 91.4, LoCoMo 89.6',v:'Easiest to self-host as a shared service. Our pick.'},
  {n:'Supermemory',k:'Hosted API · pgvector',t:['shared','bench'],mem:'One API for ingestion, contradiction handling and recall. Container tags scope memory to user, project or org.',stack:'Cloudflare Workers, Postgres + pgvector (per open-source repo)',bench:'LongMemEval-S 81.6 (QA), 95 (Recall@15). The widely shared "99%" post was a parody.',v:'Fast, many connectors, cloud-first.'},
  {n:'Cognee',k:'Document knowledge graph',t:['shared','graph','bench'],mem:'Builds a knowledge graph from documents (Cognify) and refines it with feedback (Memify). Remember / recall / improve / forget.',stack:'Python; SQLite + LanceDB + Kuzu, or a single Postgres',bench:'BEAM 79; independent LoCoMo 55–56',v:'Best for documents and knowledge bases, less for agent experience.'},
  {n:'Letta',k:'Core blocks + git MemFS',t:['shared','git'],mem:'Self-edited core blocks plus an archival vector store. Letta Code keeps memory in git, with background "sleep-time" reflection.',stack:'Python server, Postgres + pgvector, git-backed MemFS',bench:'No LongMemEval; LoCoMo 74 (unverified, reported by a competitor)',v:'Great ideas, but adopting it means adopting its agent runtime.'},

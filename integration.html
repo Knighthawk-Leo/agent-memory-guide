@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ROS Memory Integration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}
+
+:root{
+  --bg:#F4F6F8; --surface:#FFFFFF; --sunk:#EBEEF2; --ink:#12161B; --ink-2:#3A424D; --muted:#5E6875;
+  --line:#D8DDE4; --line-2:#C3CAD3;
+  --accent:#EA7900; --accent-ink:#A95500; --accent-soft:#FDEEDD;
+  --cool:#1F6FB2; --cool-soft:#E3EEF8;
+  --good:#1F8A4C; --good-soft:#E2F3E9; --bad:#C23B30; --bad-soft:#FBE6E4;
+  --grid:#E4E8ED;
+  --display:"Sora", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1115; --surface:#161A20; --sunk:#1C2128; --ink:#E9ECF0; --ink-2:#C2C9D2; --muted:#96A0AC;
+    --line:#2A313A; --line-2:#3A434E;
+    --accent:#FF9124; --accent-ink:#FFA851; --accent-soft:#3A2512;
+    --cool:#5BA7EA; --cool-soft:#132638;
+    --good:#4CC57F; --good-soft:#132A1D; --bad:#F0736A; --bad-soft:#3A1917;
+    --grid:#232931;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1115; --surface:#161A20; --sunk:#1C2128; --ink:#E9ECF0; --ink-2:#C2C9D2; --muted:#96A0AC;
+  --line:#2A313A; --line-2:#3A434E;
+  --accent:#FF9124; --accent-ink:#FFA851; --accent-soft:#3A2512;
+  --cool:#5BA7EA; --cool-soft:#132638;
+  --good:#4CC57F; --good-soft:#132A1D; --bad:#F0736A; --bad-soft:#3A1917;
+  --grid:#232931;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,5vw,3.25rem);line-height:1.08;font-weight:700}
+h2{font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.15;font-weight:600}
+h3{font-size:1.1rem;font-weight:600;line-height:1.3}
+p{margin:0;max-width:66ch}
+code,.mono{font-family:var(--mono);font-size:.88em}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink)}
+.lede{color:var(--ink-2);font-size:1.08rem}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* nav */
+.topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topnav .wrap{display:flex;align-items:center;gap:18px;height:54px}
+.brand{font-family:var(--display);font-weight:700;font-size:.95rem;white-space:nowrap;display:flex;gap:8px;align-items:center}
+.brand i{width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block}
+.navlinks{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{white-space:nowrap;text-decoration:none;color:var(--muted);font-size:.84rem;padding:6px 10px;border-radius:6px;font-weight:500}
+.navlinks a:hover{color:var(--ink);background:var(--sunk)}
+.navlinks a.on{color:var(--ink);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
+
+section{padding-block:72px;border-bottom:1px solid var(--line)}
+.sec-head{display:grid;gap:12px;margin-bottom:32px}
+.sec-head .num{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+
+/* hero */
+.hero{padding-block:56px 64px}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.hero .lede{margin-top:18px}
+.hero-facts{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.fact{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:8px 12px;font-size:.86rem;color:var(--ink-2)}
+.fact b{font-family:var(--mono);color:var(--ink);font-weight:500;margin-right:6px}
+.loop-svg{width:100%;height:auto;display:block}
+
+/* panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.stage{padding:20px}
+.stage-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line);background:var(--sunk);border-radius:0 0 10px 10px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-2);background:var(--surface);border-radius:6px;padding:7px 14px;font-size:.88rem;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(.95)}
+.btn svg{width:14px;height:14px}
+.caption{font-size:.9rem;color:var(--ink-2);flex:1;min-width:200px}
+.caption b{color:var(--ink)}
+.steps{display:flex;gap:4px}
+.steps i{width:18px;height:4px;border-radius:2px;background:var(--line-2);display:block;transition:background .3s}
+.steps i.on{background:var(--accent)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line-2);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.84rem;color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* landscape */
+.land{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:16px}
+.tool{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:12px 12px 11px;display:grid;gap:6px;transition:opacity .25s,transform .25s,border-color .2s}
+.tool:hover{border-color:var(--line-2);transform:translateY(-1px)}
+.tool[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.tool.dim{opacity:.28}
+.tool .t-name{font-weight:600;font-size:.95rem;display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+.tool .t-kind{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--accent-soft);color:var(--accent-ink);white-space:nowrap}
+.detail{position:sticky;top:76px;padding:20px;display:grid;gap:14px}
+.detail dl{margin:0;display:grid;gap:12px}
+.detail dt{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.detail dd{margin:2px 0 0;font-size:.93rem;color:var(--ink-2)}
+.verdict{background:var(--sunk);border-radius:6px;padding:10px 12px;font-size:.93rem}
+
+/* chart */
+.chart-wrap{margin-top:28px;padding:20px}
+.chart-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:end;margin-bottom:10px}
+.legend{display:flex;gap:16px;font-size:.84rem;color:var(--ink-2);flex-wrap:wrap}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.sw{width:11px;height:11px;border-radius:50%;display:inline-block}
+.sw.claim{background:var(--accent)}
+.sw.ind{border:2.5px solid var(--ink);background:var(--surface)}
+.sw.comp{border:2px dashed var(--muted)}
+.chart-scroll{overflow-x:auto}
+#bench{display:block;width:100%;min-width:560px;height:auto}
+#bench text{fill:var(--ink-2);font-family:var(--body);font-size:12px}
+#bench .axis text{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:.8rem;padding:6px 9px;border-radius:5px;opacity:0;transition:opacity .12s;max-width:240px}
+.note{font-size:.84rem;color:var(--muted);margin-top:10px}
+
+/* compare (section 2) */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.cmp h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctx{margin-top:14px;border:1.5px dashed var(--line-2);border-radius:8px;min-height:150px;padding:10px;display:flex;flex-direction:column;gap:6px;position:relative}
+.ctx-label{font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.meter{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .9s ease}
+.filebox{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:.76rem;color:var(--ink-2);line-height:1.55;transition:transform .8s cubic-bezier(.3,.7,.2,1),opacity .5s}
+.mempool{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.mem{font-family:var(--mono);font-size:.7rem;padding:3px 7px;border-radius:4px;background:var(--sunk);color:var(--muted);border:1px solid var(--line);transition:all .4s}
+.mem.hit{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent)}
+.query{font-family:var(--mono);font-size:.8rem;border:1px solid var(--line-2);border-radius:6px;padding:7px 10px;margin-top:10px;min-height:34px;background:var(--surface)}
+.query .cur{display:inline-block;width:7px;height:14px;background:var(--accent);vertical-align:-2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.fly{position:fixed;z-index:40;pointer-events:none;transition:transform .7s cubic-bezier(.3,.7,.2,1),opacity .7s}
+table.plain{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:24px}
+table.plain th,table.plain td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.plain th{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+table.plain td:first-child{color:var(--muted);font-weight:500;white-space:nowrap}
+.tbl-scroll{overflow-x:auto}
+.callout{margin-top:22px;padding:14px 16px;border-radius:8px;background:var(--accent-soft);color:var(--ink);font-size:.95rem}
+.callout b{color:var(--accent-ink)}
+
+/* lifecycle (section 3) */
+.life-svg{width:100%;height:auto;display:block;min-width:640px}
+.life-svg text{font-family:var(--body);fill:var(--ink-2)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.mode{border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--surface);transition:border-color .3s,box-shadow .3s}
+.mode.lit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.mode h3{font-size:.98rem}
+.mode p{font-size:.88rem;color:var(--ink-2);margin-top:6px}
+.mode .ex{font-family:var(--mono);font-size:.74rem;color:var(--muted);margin-top:8px}
+
+/* decisions (section 4) */
+.dec-grid{display:grid;grid-template-columns:260px 1fr;gap:20px}
+.strat{display:grid;gap:8px;align-content:start}
+.strat button{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px}
+.strat button b{display:block;font-size:.94rem}
+.strat button span{font-size:.8rem;color:var(--muted)}
+.strat button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.dec-stage{min-height:300px;display:flex;flex-direction:column;gap:10px}
+.card-dec{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-family:var(--mono);font-size:.8rem;line-height:1.6;transition:all .6s cubic-bezier(.3,.7,.2,1);position:relative}
+.card-dec .k{color:var(--muted)}
+.card-dec .st{position:absolute;top:10px;right:12px;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:3px}
+.st.active{background:var(--good-soft);color:var(--good)}
+.st.old{background:var(--sunk);color:var(--muted)}
+.st.gone{background:var(--bad-soft);color:var(--bad)}
+.card-dec.faded{opacity:.5}
+.card-dec.struck .val{text-decoration:line-through;text-decoration-color:var(--bad)}
+.card-dec.vanish{opacity:0;transform:translateX(30px) scale(.96);height:0;padding-block:0;margin:0;border-width:0;overflow:hidden}
+.card-dec.enter{opacity:0;transform:translateY(-14px)}
+.chain{font-family:var(--mono);font-size:.74rem;color:var(--muted);display:flex;align-items:center;gap:6px;padding-left:14px}
+.gitlog{font-family:var(--mono);font-size:.78rem;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--sunk);line-height:1.8}
+.gitlog .h{color:var(--accent-ink)}
+.gitlog div{transition:opacity .5s,transform .5s}
+pre.yaml{margin:0;font-family:var(--mono);font-size:.8rem;line-height:1.65;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;color:var(--ink-2)}
+pre.yaml .k{color:var(--cool)}
+pre.yaml .c{color:var(--muted)}
+
+/* parallel (section 5) */
+.par-svg{width:100%;height:auto;display:block;min-width:720px}
+.par-svg text{font-family:var(--body);fill:var(--ink)}
+.par-svg .sm{font-size:11px;fill:var(--muted);font-family:var(--mono)}
+.warn{margin-top:20px;border:1px solid var(--line);border-left:0;border-radius:8px;padding:14px 16px;display:flex;gap:12px;background:var(--surface)}
+.warn .ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;font-weight:700;font-family:var(--mono);font-size:.8rem}
+.rules{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:22px;counter-reset:r}
+.rule{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-size:.88rem;color:var(--ink-2);transition:border-color .3s,box-shadow .3s}
+.rule b{display:block;color:var(--ink);font-size:.93rem;margin-bottom:3px}
+.rule b::before{counter-increment:r;content:counter(r) ". ";font-family:var(--mono);color:var(--accent-ink)}
+.rule.lit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* pipeline (section 6) */
+.pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
+.pstep{padding:16px;border:1px solid var(--line);background:var(--surface);min-height:200px;display:flex;flex-direction:column;gap:8px;transition:border-color .3s}
+.pstep:first-child{border-radius:8px 0 0 8px}
+.pstep:last-child{border-radius:0 8px 8px 0}
+.pstep+.pstep{border-left:0}
+.pstep.lit{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.pstep .lbl{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.pstep .body{font-family:var(--mono);font-size:.74rem;line-height:1.55;color:var(--ink-2);background:var(--sunk);border-radius:6px;padding:8px 10px;opacity:.25;transition:opacity .5s,transform .5s;transform:translateY(6px)}
+.pstep.done .body{opacity:1;transform:none}
+.pstep .sz{margin-top:auto;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.benefits{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:22px}
+.benefit{border-top:2px solid var(--accent);padding-top:10px}
+.benefit b{display:block;font-size:.95rem}
+.benefit span{font-size:.86rem;color:var(--ink-2)}
+.tools-note{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tools-note div{font-size:.86rem;color:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface)}
+.tools-note b{color:var(--ink)}
+
+/* recommendation (section 7) */
+.arch{display:grid;gap:10px}
+.layer{display:grid;grid-template-columns:200px 1fr auto;gap:16px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--surface)}
+.layer .lname{font-family:var(--display);font-weight:600}
+.layer .ldesc{font-size:.9rem;color:var(--ink-2)}
+.layer .lpick{font-family:var(--mono);font-size:.78rem;color:var(--accent-ink);text-align:right}
+.layer.core{border-color:var(--accent)}
+.scopes{display:flex;align-items:stretch;gap:0;margin-top:22px;overflow-x:auto}
+.scope{flex:1;min-width:130px;padding:12px 14px;border:1px solid var(--line);background:var(--surface);position:relative}
+.scope:first-child{border-radius:8px 0 0 8px}
+.scope:last-child{border-radius:0 8px 8px 0}
+.scope+.scope{border-left:0}
+.scope b{display:block;font-family:var(--display);font-size:.95rem}
+.scope span{font-size:.8rem;color:var(--muted)}
+.scope .who{font-family:var(--mono);font-size:.7rem;color:var(--accent-ink);margin-top:6px;display:block}
+.must{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:22px}
+.must div{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-size:.88rem;color:var(--ink-2)}
+.must b{display:block;color:var(--ink)}
+footer{padding-block:40px;color:var(--muted);font-size:.84rem}
+
+@media (max-width:900px){
+  .hero-grid,.land,.cmp,.dec-grid{grid-template-columns:1fr}
+  .detail{position:static}
+  .modes,.tools-note{grid-template-columns:1fr}
+  .pipe{grid-template-columns:1fr 1fr}
+  .pstep{border:1px solid var(--line)!important;border-radius:8px!important;min-height:0}
+  .pipe{gap:8px}
+  .layer{grid-template-columns:1fr}
+  .layer .lpick{text-align:left}
+}
+@media (max-width:520px){
+  .pipe{grid-template-columns:1fr}
+  section{padding-block:52px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:0s!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<style>
+:root{
+  --src-rules:#5E6875; --src-code:#1F6FB2; --src-kb:#6A55C8; --src-mem:#D26B00;
+  --src-rules-soft:#ECEEF1; --src-code-soft:#E3EEF8; --src-kb-soft:#ECE8FA; --src-mem-soft:#FDEEDD;
+  --code-bg:#F0F2F5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --src-rules:#A3ACB8; --src-code:#5BA7EA; --src-kb:#A797F2; --src-mem:#FF9124;
+    --src-rules-soft:#20252C; --src-code-soft:#132638; --src-kb-soft:#221D3A; --src-mem-soft:#3A2512;
+    --code-bg:#12161B;
+  }
+}
+:root[data-theme="dark"]{
+  --src-rules:#A3ACB8; --src-code:#5BA7EA; --src-kb:#A797F2; --src-mem:#FF9124;
+  --src-rules-soft:#20252C; --src-code-soft:#132638; --src-kb-soft:#221D3A; --src-mem-soft:#3A2512;
+  --code-bg:#12161B;
+}
+.back{font-size:.84rem;color:var(--muted);text-decoration:none;white-space:nowrap}
+.back:hover{color:var(--ink)}
+.verdicts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vcard{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:16px;display:grid;gap:8px;align-content:start}
+.vcard.yes{border-color:var(--accent)}
+.vcard h3{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.vcard p{font-size:.9rem;color:var(--ink-2)}
+.pill{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap}
+.pill.go{background:var(--accent-soft);color:var(--accent-ink)}
+.pill.no{background:var(--sunk);color:var(--muted)}
+.pill.warn{background:var(--bad-soft);color:var(--bad)}
+.pill.ok{background:var(--good-soft);color:var(--good)}
+
+/* context assembly */
+.asm{display:grid;grid-template-columns:230px 1fr 250px;gap:18px;align-items:start}
+.task{border:1px solid var(--line-2);border-radius:8px;padding:12px;background:var(--surface);font-size:.9rem;transition:border-color .3s}
+.task.lit{border-color:var(--accent)}
+.task .from{font-family:var(--mono);font-size:.7rem;color:var(--muted);display:block;margin-bottom:6px}
+.lanes{display:grid;gap:8px}
+.lane{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface);transition:border-color .3s,box-shadow .3s;min-height:58px}
+.lane.lit{box-shadow:0 0 0 3px var(--c-soft);border-color:var(--c)}
+.lane .ln{font-weight:600;font-size:.88rem;display:flex;gap:7px;align-items:center}
+.lane .ln i{width:10px;height:10px;border-radius:2px;background:var(--c);flex:none}
+.lane .ls{font-family:var(--mono);font-size:.68rem;color:var(--muted);display:block;margin-top:2px;font-weight:400}
+.lane .hits{display:flex;flex-wrap:wrap;gap:5px}
+.hit{font-family:var(--mono);font-size:.7rem;padding:3px 7px;border-radius:4px;background:var(--c-soft);color:var(--ink);border:1px solid var(--c);transition:all .4s}
+.hit.stale{text-decoration:line-through;text-decoration-color:var(--bad);opacity:.55;border-style:dashed}
+.l-rules{--c:var(--src-rules);--c-soft:var(--src-rules-soft)}
+.l-code{--c:var(--src-code);--c-soft:var(--src-code-soft)}
+.l-kb{--c:var(--src-kb);--c-soft:var(--src-kb-soft)}
+.l-mem{--c:var(--src-mem);--c-soft:var(--src-mem-soft)}
+.window{border:1.5px dashed var(--line-2);border-radius:8px;padding:10px;background:var(--surface);display:grid;gap:8px}
+.budget{display:flex;height:12px;border-radius:3px;overflow:hidden;background:var(--sunk);gap:2px}
+.budget i{display:block;height:100%;width:0;transition:width .7s ease;background:var(--c)}
+.budget-n{font-family:var(--mono);font-size:.74rem;color:var(--muted);display:flex;justify-content:space-between}
+.wlist{display:grid;gap:4px;min-height:120px;align-content:start}
+.wlist div{font-family:var(--mono);font-size:.68rem;padding:3px 6px;border-radius:3px;border-left:3px solid var(--c);background:var(--c-soft);color:var(--ink-2)}
+.flag{margin-top:4px;font-size:.8rem;border:1px solid var(--bad);background:var(--bad-soft);color:var(--ink);border-radius:6px;padding:8px 10px}
+.flag b{color:var(--bad)}
+
+.prec{display:grid;gap:6px;margin:0;padding:0;list-style:none;counter-reset:p}
+.prec li{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:baseline;font-size:.93rem;color:var(--ink-2)}
+.prec li::before{counter-increment:p;content:counter(p);font-family:var(--mono);font-size:.78rem;color:var(--accent-ink);border:1px solid var(--line-2);border-radius:4px;text-align:center;padding:1px 0}
+.prec li b{color:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}
+
+/* existing inventory */
+.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.inv > div{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);display:grid;gap:6px;align-content:start}
+.inv b{font-size:.95rem}
+.inv span{font-size:.86rem;color:var(--ink-2)}
+.inv code{font-size:.74rem;color:var(--muted);word-break:break-word}
+.gaps{display:grid;gap:8px;margin-top:20px}
+.gap{display:grid;grid-template-columns:auto 1fr;gap:10px;font-size:.92rem;color:var(--ink-2);align-items:baseline}
+.gap code{font-size:.8em}
+
+/* pipelines */
+.modebar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.flow{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(140px,1fr);gap:8px;overflow-x:auto;padding-bottom:4px}
+.fstep{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--surface);display:grid;gap:6px;align-content:start;transition:border-color .3s,box-shadow .3s,opacity .3s;opacity:.55;min-height:150px}
+.fstep.on{opacity:1}
+.fstep.lit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);opacity:1}
+.fstep .fn{font-weight:600;font-size:.88rem}
+.fstep .fk{font-family:var(--mono);font-size:.66rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.fstep .fd{font-size:.8rem;color:var(--ink-2)}
+.fstep .fx{font-family:var(--mono);font-size:.68rem;background:var(--sunk);border-radius:4px;padding:5px 7px;color:var(--ink-2);line-height:1.5}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.gotchas{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:20px}
+.gotchas div{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-size:.88rem;color:var(--ink-2)}
+.gotchas b{display:block;color:var(--ink);margin-bottom:2px}
+
+/* viking explorer */
+.vk{display:grid;grid-template-columns:300px 1fr;gap:16px}
+.tree{font-family:var(--mono);font-size:.8rem;display:grid;gap:2px}
+.tree button{text-align:left;border:1px solid transparent;background:none;border-radius:5px;padding:4px 8px;display:flex;justify-content:space-between;gap:6px;align-items:center;transition:background .3s,border-color .3s}
+.tree button:hover{background:var(--sunk)}
+.tree button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.tree button.path{background:var(--src-code-soft);border-color:var(--src-code)}
+.tree .sc{font-size:.66rem;color:var(--muted)}
+.tiers{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tierbox{background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:.78rem;line-height:1.6;white-space:pre-wrap;color:var(--ink-2);min-height:170px}
+.tiermeta{font-size:.82rem;color:var(--muted);margin-top:8px}
+
+/* fit table */
+.fit td:nth-child(2),.fit td:nth-child(3){width:38%}
+.fit td .pill{margin-right:6px}
+
+/* wiring */
+.wire{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+.wsvg{width:100%;height:auto;display:block;min-width:520px}
+.wsvg text{font-family:var(--body)}
+.wsteps{display:grid;gap:6px;margin-top:12px}
+.wsteps button{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:8px 10px;display:grid;grid-template-columns:24px 1fr;gap:8px;align-items:baseline;font-size:.88rem}
+.wsteps button .n{font-family:var(--mono);font-size:.74rem;color:var(--accent-ink)}
+.wsteps button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.wdetail{position:sticky;top:76px;display:grid;gap:10px}
+.wdetail h3{font-size:1.15rem}
+.where{font-family:var(--mono);font-size:.74rem;color:var(--muted);display:grid;gap:2px}
+.where span::before{content:"→ ";color:var(--accent-ink)}
+pre.code{margin:0;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:.74rem;line-height:1.6;overflow-x:auto;color:var(--ink-2);max-height:430px;overflow-y:auto}
+.sketch{font-size:.78rem;color:var(--muted)}
+.banks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:22px}
+.banks div{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);font-size:.86rem;color:var(--ink-2)}
+.banks b{display:block;color:var(--ink);font-family:var(--display);font-size:.95rem}
+.banks code{font-size:.76rem;color:var(--accent-ink)}
+
+/* rollout */
+.phases{display:grid;gap:10px}
+.phase{display:grid;grid-template-columns:90px 1fr 1fr;gap:16px;border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--surface);align-items:start}
+.phase .pn{font-family:var(--mono);font-size:.78rem;color:var(--accent-ink)}
+.phase b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:4px}
+.phase p{font-size:.88rem;color:var(--ink-2)}
+.phase .exit{font-size:.84rem;color:var(--ink-2);border-left:2px solid var(--good);padding-left:10px}
+.phase .exit span{display:block;font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--good);margin-bottom:2px}
+.phase.block{border-color:var(--bad)}
+.phase.block .pn{color:var(--bad)}
+
+@media (max-width:900px){
+  .asm,.two,.vk,.wire,.verdicts{grid-template-columns:1fr}
+  .wdetail{position:static}
+  .phase{grid-template-columns:1fr}
+  .lane{grid-template-columns:1fr}
+}
+</style>
+
+<nav class="topnav" aria-label="Sections">
+  <div class="wrap">
+    <a class="back" href="index.html">← Field guide</a>
+    <div class="navlinks" id="navlinks">
+      <a href="#layers">Four sources</a>
+      <a href="#existing">What ROS has</a>
+      <a href="#hindsight">Hindsight</a>
+      <a href="#openviking">OpenViking</a>
+      <a href="#fit">Fit for ROS</a>
+      <a href="#wiring">Wiring it in</a>
+      <a href="#rollout">Rollout</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Integration plan · ROS agent-studio-backend</div>
+      <h1 style="margin-top:14px">Adding agent memory to the ROS pipeline</h1>
+      <p class="lede">We read the source of Hindsight and OpenViking, and mapped the ROS workflow engine, to answer three questions: how each tool works inside, how it would plug into ROS, and how agent memory sits next to the knowledge base, the code index and RAG that ROS already runs.</p>
+      <div class="hero-facts">
+        <div class="fact"><b>v0.10.1</b>Hindsight read</div>
+        <div class="fact"><b>v0.4.21</b>OpenViking read</div>
+        <div class="fact"><b>6</b>insertion points in ROS</div>
+      </div>
+    </div>
+    <div class="verdicts">
+      <div class="vcard yes"><h3>Hindsight <span class="pill go">Integrate</span></h3><p>MIT licence, Postgres + pgvector, native OpenRouter support, async Python client, built-in MCP. It fills the gap ROS has today: learning from past Claude Code runs.</p></div>
+      <div class="vcard"><h3>OpenViking <span class="pill no">Not now</span></h3><p>AGPLv3, single node by default, cannot use our pgvector or Qdrant. Its strength is code and document context, which overlaps with the VectorMCP code index ROS already has.</p></div>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- 1 LAYERS -->
+<section id="layers">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">01 · How memory works with the knowledge base, code index and RAG</div>
+      <h2>Four sources feed one context window</h2>
+      <p class="lede">Each source answers a different kind of question. The code index knows what the code says now. The knowledge base knows what the documents say. Agent memory knows what happened on past runs. Rules are loaded every time. Press play to watch one Slack request pull from all four.</p>
+    </div>
+    <div class="panel">
+      <div class="stage asm">
+        <div class="task" id="asmTask"><span class="from">Slack · @ros-bot in #billing</span>Add token refresh to the billing-api auth middleware and open a PR.</div>
+        <div class="lanes">
+          <div class="lane l-rules" id="laneR"><div class="ln"><i></i><div>Rules<span class="ls">CLAUDE.md · memory blocks</span></div></div><div class="hits"></div></div>
+          <div class="lane l-code" id="laneC"><div class="ln"><i></i><div>Code index<span class="ls">VectorMCP · Qdrant</span></div></div><div class="hits"></div></div>
+          <div class="lane l-kb" id="laneK"><div class="ln"><i></i><div>Knowledge base<span class="ls">KnowledgeService · pgvector</span></div></div><div class="hits"></div></div>
+          <div class="lane l-mem" id="laneM"><div class="ln"><i></i><div>Agent memory<span class="ls">Hindsight · per-repo bank</span></div></div><div class="hits"></div></div>
+        </div>
+        <div class="window">
+          <span class="ctx-label">Claude Code context</span>
+          <div class="budget" id="budget"><i class="l-rules"></i><i class="l-code"></i><i class="l-kb"></i><i class="l-mem"></i></div>
+          <div class="budget-n"><span id="budgetN">0 tokens</span><span>budget 4,000</span></div>
+          <div class="wlist" id="wlist"></div>
+          <div class="flag" id="flag" hidden><b>Conflict.</b> Memory says the repo uses jsonwebtoken. The code index shows <code>import { jwtVerify } from "jose"</code>. Current code wins; the memory is invalidated.</div>
+        </div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn primary" id="playAsm"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Play</button>
+        <div class="steps" id="stepsAsm"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="caption" id="capAsm">Press play to assemble the context for one task.</div>
+      </div>
+    </div>
+
+    <div class="tbl-scroll">
+      <table class="plain">
+        <thead><tr><th></th><th>Code index</th><th>Knowledge base (RAG)</th><th>Agent memory</th><th>Rules</th></tr></thead>
+        <tbody>
+          <tr><td>Answers</td><td>Where is X? What calls Y?</td><td>What does the spec or runbook say?</td><td>What happened last time? What did we learn?</td><td>What must always be done?</td></tr>
+          <tr><td>Source of truth</td><td>The repository at a commit</td><td>Documents people wrote</td><td>Past runs: tool calls, failures, fixes, decisions</td><td>People, via review</td></tr>
+          <tr><td>Written by</td><td>Indexer on sync</td><td>Ingest jobs (<code>KnowledgeService.ingest</code>)</td><td>The pipeline after each run</td><td>Humans, or promoted memory</td></tr>
+          <tr><td>Unit</td><td>Symbol / file chunk</td><td>Document chunk</td><td>Fact, observation, lesson</td><td>Whole file</td></tr>
+          <tr><td>How it goes wrong</td><td>Index lags the branch</td><td>Docs go out of date</td><td>A lesson stops being true after the code changes</td><td>Grows too long</td></tr>
+          <tr><td>How Claude Code gets it</td><td>MCP pull (<code>search_code</code>)</td><td>Injected, or an MCP tool</td><td>Injected at start + MCP pull</td><td>Always in the system prompt</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="two">
+      <div>
+        <h3>When sources disagree</h3>
+        <p class="muted" style="margin:6px 0 14px;font-size:.92rem">Give the agent a fixed order of trust in its system prompt:</p>
+        <ol class="prec">
+          <li><span><b>Rules</b> in CLAUDE.md and memory blocks. People reviewed them.</span></li>
+          <li><span><b>Current code</b> from the code index or the checked-out repo. It is what will actually run.</span></li>
+          <li><span><b>Active decisions</b> in memory (<code>kind:decision</code>, status active).</span></li>
+          <li><span><b>Knowledge base documents.</b> Useful intent, may lag the code.</span></li>
+          <li><span><b>Learned memory</b> from past runs. Treat as hints; verify against the code before acting.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h3>How knowledge moves between them</h3>
+        <p class="muted" style="margin:6px 0 14px;font-size:.92rem">Memory is where new knowledge lands first. Some of it earns a permanent place:</p>
+        <ol class="prec">
+          <li><span>A run finishes. Its tool calls, failures and fixes are <b>retained</b> into memory with run scope.</span></li>
+          <li><span>Hindsight <b>consolidates</b> repeated facts into observations with a proof count.</span></li>
+          <li><span>A lesson seen across several runs is <b>proposed for promotion</b> in the ROS memory UI.</span></li>
+          <li><span>A reviewer moves it into <b>CLAUDE.md, a memory block or the knowledge base</b>.</span></li>
+          <li><span>When the code changes and a memory contradicts it, the memory is <b>invalidated</b>.</span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 EXISTING -->
+<section id="existing">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">02 · What ROS already has</div>
+      <h2>Most of the retrieval stack is already built</h2>
+      <p class="lede">ROS runs FastAPI with an arq worker, Postgres with pgvector, and a Qdrant-backed code index. It already has a knowledge base, archival memory and memory blocks. What it lacks is memory that learns from Claude Code runs.</p>
+    </div>
+    <div class="inv">
+      <div><b>Knowledge base</b><span>Ingest, hybrid BM25 + vector search with RRF, reranking, QA pairs.</span><code>services/knowledge.py · knowledge/store.py · pgvector_store.py</code></div>
+      <div><b>Code index</b><span>VectorMCP on Qdrant, exposed to Claude Code over MCP: route_task, search_code, get_file, expand_context.</span><code>services/code_index.py · VectorMCP/codeindex/mcp_server.py</code></div>
+      <div><b>Archival memory</b><span><code style="color:inherit">remember</code> / <code style="color:inherit">recall</code> over a memories table and a <code style="color:inherit">ros_mem_&lt;dim&gt;</code> vector collection.</span><code>services/memory.py</code></div>
+      <div><b>Memory blocks</b><span>Letta-style, versioned blocks per user and per agent. Up to 8 per scope.</span><code>services/memory_blocks.py</code></div>
+      <div><b>Sleep-time consolidation</b><span>Post-run consolidation, behind <code style="color:inherit">ROS_MEMORY_SLEEPTIME_ENABLED</code>.</span><code>services/memory_consolidation.py</code></div>
+      <div><b>Decision log &amp; activity</b><span>Claude Code runs record decisions, tool activity, diffs and progress cards on spans.</span><code>nodes/claude_code.py · nodes/claude_decisions.py</code></div>
+    </div>
+    <h3 style="margin-top:30px">Gaps in the Claude Code node</h3>
+    <div class="gaps">
+      <div class="gap"><span class="pill warn">Gap</span><span>The <code>claude_code</code> node does not inject user or agent memory blocks. Only the generic <code>agent</code> node does (<code>agent_node.py:678-686</code>).</span></div>
+      <div class="gap"><span class="pill warn">Gap</span><span>Claude Code has no tool to write memory. The memory directive only says "if a shared-memory tool is available".</span></div>
+      <div class="gap"><span class="pill warn">Gap</span><span>The full transcript is not kept. Only the SDK <code>session_id</code> and a bounded activity summary are stored.</span></div>
+      <div class="gap"><span class="pill warn">Gap</span><span>Upstream SystemMessages (from <code>retrieval</code> or <code>code_index</code> nodes) never reach Claude Code: it reads only the last human message. Context must travel through a state key or be injected inside the node.</span></div>
+    </div>
+    <div class="callout" style="background:var(--bad-soft)"><b style="color:var(--bad)">Fix first.</b> The current <code>feat/codebase-indexing</code> HEAD (<code>77fdf58</code>) does not start. The merge duplicated the <code>CodeRepo</code> model (<code>entities.py:617</code> and <code>:659</code>), so importing <code>ros.models</code> fails. <code>claude_code.py:1753</code> also passes arguments that <code>_materialize_context_docs</code> does not accept. <code>services/code_index.py</code> and the code-index MCP wiring in <code>services/runtime.py</code> are duplicated too.</div>
+    <div class="callout"><b>A design decision to make.</b> The ROS design doc <code>sdlc-memory-topology.md</code> lists "no new general-purpose agent memory store" as an anti-goal. Hindsight should therefore replace the archival memory path behind the existing <code>MemoryService</code> interface over time, not run as a second store forever.</div>
+  </div>
+</section>
+
+<!-- 3 HINDSIGHT -->
+<section id="hindsight">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">03 · Hindsight, from the source</div>
+      <h2>Retain, recall, reflect</h2>
+      <p class="lede">Hindsight is a FastAPI server on port 8888 backed by Postgres and pgvector. Memory lives in banks. Each write is run through an LLM that extracts facts, entities and links. A background job merges related facts into observations. Pick an operation to see what happens inside.</p>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>MIT</b>licence</div>
+      <div class="fact"><b>~36k</b>stars</div>
+      <div class="fact"><b>1–3 wk</b>release cadence</div>
+      <div class="fact"><b>384-d</b>bge-small embeddings by default</div>
+      <div class="fact"><b>openrouter</b>native LLM provider</div>
+    </div>
+    <div class="panel">
+      <div class="stage">
+        <div class="modebar chips" role="group" aria-label="Operation">
+          <button class="chip" aria-pressed="true" data-hm="retain">retain</button>
+          <button class="chip" aria-pressed="false" data-hm="recall">recall</button>
+          <button class="chip" aria-pressed="false" data-hm="reflect">reflect</button>
+        </div>
+        <div class="flow" id="hflow"></div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn primary" id="playH"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Play</button>
+        <div class="caption" id="capH"></div>
+      </div>
+    </div>
+    <div class="callout">The four memory types are <b>world</b> facts, <b>experience</b> (what the agent itself did), <b>observation</b> (consolidated in the background, with a proof count) and <b>mental models</b> (a saved question whose answer is regenerated). The "opinion" network in older docs has been removed from the code.</div>
+    <div class="gotchas">
+      <div><b>No auth by default</b>REST and MCP are open until you set the tenant extension. The built-in option is one shared API key.</div>
+      <div><b>Filter with tags, not metadata</b>Recall filters only on tags. Metadata values must be strings. The default <code>tags_match="any"</code> also returns untagged memories, so use <code>any_strict</code>.</div>
+      <div><b>document_id replaces</b>Re-using a document id deletes the old facts. Use one id per run, or <code>update_mode="append"</code>.</div>
+      <div><b>An LLM call on every write</b>Each retain runs extraction; consolidation is another call; reflect loops up to 10 times. Use <code>retain_async</code>, a cheaper retain model and batching.</div>
+      <div><b>Eventually consistent</b>Observations and mental models update in the background, so a recall right after a retain may not see it.</div>
+      <div><b>Fixed embedding size</b>The dimension is set in the schema. Changing embedding model on a populated database fails at startup.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 OPENVIKING -->
+<section id="openviking">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">04 · OpenViking, from the source</div>
+      <h2>A filesystem of context with three levels of detail</h2>
+      <p class="lede">OpenViking stores resources, memories and skills under <code>viking://</code> URIs. At ingest, an LLM writes a short abstract (L0) and an overview (L1) for every directory; L2 is the original file. Click a node to read its tiers, and switch the search mode to see how retrieval walks the tree.</p>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>AGPLv3</b>licence</div>
+      <div class="fact"><b>~39k</b>stars</div>
+      <div class="fact"><b>64</b>releases in 8 months</div>
+      <div class="fact"><b>:1933</b>server only, no embedded mode</div>
+      <div class="fact"><b>LiteLLM</b>needed for Claude</div>
+    </div>
+    <div class="panel">
+      <div class="stage vk">
+        <div>
+          <div class="tree" id="vtree"></div>
+        </div>
+        <div>
+          <div class="tiers chips" role="group" aria-label="Tier" id="vtiers">
+            <button class="chip" aria-pressed="true" data-t="0">L0 · abstract</button>
+            <button class="chip" aria-pressed="false" data-t="1">L1 · overview</button>
+            <button class="chip" aria-pressed="false" data-t="2">L2 · full</button>
+          </div>
+          <div class="tierbox" id="vbox"></div>
+          <div class="tiermeta" id="vmeta"></div>
+        </div>
+      </div>
+      <div class="stage-bar">
+        <button class="btn primary" id="playV" data-m="quick"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Search: find() default</button>
+        <button class="btn" id="playV2" data-m="thinking">Search with reranker</button>
+        <div class="caption" id="capV">Query: "where is the JWT verified?"</div>
+      </div>
+    </div>
+    <div class="gotchas">
+      <div><b>Recursive search needs a reranker</b><code>find()</code> is always one flat vector search. <code>search()</code> only walks the directory tree when a rerank model is configured.</div>
+      <div><b>Single node by default</b>The local vector engine takes an exclusive lock on the workspace. Scaling out needs VikingDB or the commercial edition.</div>
+      <div><b>Its own vector store</b>Backends are its embedded C++ engine, VikingDB or openGauss. It cannot use the pgvector or Qdrant that ROS runs.</div>
+      <div><b>Coding memory is off</b>The cases, trajectories and experiences memory types sit behind a global switch that defaults to off. Default types are profile, preferences, entities, events.</div>
+      <div><b>AGPLv3</b>Running a modified server as a network service triggers copyleft terms. Needs legal review.</div>
+      <div><b>Code indexing</b>Code files get a tree-sitter skeleton with no LLM call; docs cost one LLM call each, plus one per directory. Files are embedded whole, capped at 4,096 tokens.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 FIT -->
+<section id="fit">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">05 · Fit for ROS</div>
+      <h2>Side by side, against what ROS needs</h2>
+    </div>
+    <div class="tbl-scroll">
+      <table class="plain fit">
+        <thead><tr><th>Need</th><th>Hindsight</th><th>OpenViking</th></tr></thead>
+        <tbody>
+          <tr><td>Licence</td><td><span class="pill ok">Good</span>MIT</td><td><span class="pill warn">Risk</span>AGPLv3 core</td></tr>
+          <tr><td>Reuse our Postgres</td><td><span class="pill ok">Good</span>Own database on the existing pgvector server</td><td><span class="pill warn">Risk</span>Own vector engine and file store</td></tr>
+          <tr><td>LLM via OpenRouter</td><td><span class="pill ok">Good</span>Native <code>openrouter</code> provider, per-operation model overrides</td><td><span class="pill no">Partial</span>OpenAI-compatible base URL, or LiteLLM for Claude</td></tr>
+          <tr><td>Scale out</td><td><span class="pill ok">Good</span>Stateless API + separate workers on a Postgres queue</td><td><span class="pill warn">Risk</span>Single writer unless VikingDB or commercial</td></tr>
+          <tr><td>Multi-tenant</td><td><span class="pill no">Partial</span>Bank per repo; schema per tenant needs a custom extension</td><td><span class="pill ok">Good</span>Accounts, users, roles and API keys built in</td></tr>
+          <tr><td>Learns from coding runs</td><td><span class="pill ok">Good</span>Experience facts, observations, mental models</td><td><span class="pill no">Partial</span>Experience types are off by default</td></tr>
+          <tr><td>Code and document context</td><td><span class="pill no">Partial</span>File retain, no code parsing</td><td><span class="pill ok">Good</span>Tree-sitter skeletons, L0/L1 summaries</td></tr>
+          <tr><td>Overlap with ROS</td><td>Replaces the archival memory path</td><td>Overlaps the VectorMCP code index and knowledge base</td></tr>
+          <tr><td>Claude Code integration</td><td>MCP at <code>/mcp/{bank}/</code>, plugin with recall and retain hooks</td><td>MCP at <code>/mcp</code>, plugin with recall, capture and commit hooks</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><b>Recommendation.</b> Integrate Hindsight as the learned-memory layer. Keep VectorMCP as the code index and <code>KnowledgeService</code> as the document store. OpenViking's directory summaries are a good idea to borrow for VectorMCP's <code>route_task</code>, rather than a second system to run.</div>
+  </div>
+</section>
+
+<!-- 6 WIRING -->
+<section id="wiring">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">06 · Wiring Hindsight into ROS</div>
+      <h2>Six changes, following one run</h2>
+      <p class="lede">A run starts from Slack, compiles on the API, executes on an arq worker or a VM, and finalizes back on the API. Memory touches it at six points. Click a step for the file locations and a code sketch.</p>
+    </div>
+    <div class="wire">
+      <div>
+        <div class="panel" style="padding:10px">
+          <div class="chart-scroll"><svg class="wsvg" id="wsvg" viewBox="0 0 560 380" role="img" aria-label="ROS run lifecycle with Hindsight insertion points"></svg></div>
+        </div>
+        <div class="wsteps" id="wsteps"></div>
+        <div style="margin-top:12px"><button class="btn primary" id="playW"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>Play the run</button></div>
+      </div>
+      <div class="panel wdetail" style="padding:18px" id="wdetail" aria-live="polite"></div>
+    </div>
+    <h3 style="margin-top:34px">Banks and scopes</h3>
+    <div class="banks">
+      <div><b>Org</b><code>bank t{tenant}__org</code><br>Company-wide conventions. Written only by promotion.</div>
+      <div><b>Repo</b><code>bank t{tenant}__{repo}</code><br>One bank per repository. Recall filters on <code>scope:repo</code>.</div>
+      <div><b>User</b><code>tag user:{id}</code><br>Preferences of the person who triggered the run, from <code>Thread.meta["end_user"]</code>.</div>
+      <div><b>Run</b><code>tags run:{id} scope:run</code><br>Everything a run writes. Not recalled by default until promoted.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 ROLLOUT -->
+<section id="rollout">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="num">07 · Rollout</div>
+      <h2>Ship it in small steps, measure each one</h2>
+    </div>
+    <div class="phases">
+      <div class="phase block"><div class="pn">Phase 0</div><div><b>Unblock the branch</b><p>Remove the duplicate <code>CodeRepo</code> model, the duplicated <code>code_index.py</code> module and MCP wiring, and fix the <code>_materialize_context_docs</code> call.</p></div><div class="exit"><span>Done when</span>api and worker start; a claude_code run completes.</div></div>
+      <div class="phase"><div class="pn">Phase 1</div><div><b>Shadow writes</b><p>Deploy Hindsight on the existing Postgres server. Write back after each run (step 5). No recall yet. Persist transcripts.</p></div><div class="exit"><span>Done when</span>Two weeks of runs retained; LLM cost per run known; memories read sensibly.</div></div>
+      <div class="phase"><div class="pn">Phase 2</div><div><b>Recall at start, one workflow</b><p>Turn on steps 2 and 3 for one workflow. Compare with and without memory on the same tasks.</p></div><div class="exit"><span>Done when</span>Fewer turns or failed commands per run, no rise in wrong edits.</div></div>
+      <div class="phase"><div class="pn">Phase 3</div><div><b>MCP pull, reflect and promotion</b><p>Attach the Hindsight MCP server with read-only tools. Add post-run reflection and a promotion queue in the memory UI.</p></div><div class="exit"><span>Done when</span>Reviewers promote lessons weekly; stale memories get invalidated.</div></div>
+      <div class="phase"><div class="pn">Phase 4</div><div><b>One memory path</b><p>Move <code>MemoryService</code> archival memory onto Hindsight behind the same interface, in line with the design doc's anti-goal.</p></div><div class="exit"><span>Done when</span>One store for learned memory; memory blocks stay for always-on rules.</div></div>
+    </div>
+    <div class="callout"><b>Before committing.</b> Replay 50 to 100 real ROS run traces through Hindsight and a plain pgvector baseline built on the existing <code>MemoryService</code>. Public benchmarks measure chat recall, not coding.</div>
+  </div>
+</section>
+</main>
+<footer><div class="wrap">Read from source: vectorize-io/hindsight at <code>ccfe85b</code> (v0.10.1, 2026-09-26), volcengine/OpenViking at <code>a09a9d20</code> (v0.4.21, 2026-09-26), ROS <code>agent-studio-backend</code> on <code>feat/codebase-indexing</code> at <code>77fdf58</code>. Code on this page is a design sketch; it has not been run.</div></footer>
+
+<!-- code snippets (plain text) -->
+<script type="text/plain" id="snip-deploy"># docker-compose.yml: add next to postgres / redis
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:0.10.1     # full image: local bge-small + cross-encoder
+    environment:
+      HINDSIGHT_API_DATABASE_URL: postgresql://ros:${POSTGRES_PASSWORD}@postgres:5432/hindsight
+      HINDSIGHT_API_LLM_PROVIDER: openrouter
+      HINDSIGHT_API_OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      HINDSIGHT_API_LLM_MODEL: anthropic/claude-sonnet-4.5          # reflect, consolidation
+      HINDSIGHT_API_RETAIN_LLM_PROVIDER: openrouter
+      HINDSIGHT_API_RETAIN_LLM_MODEL: anthropic/claude-haiku-4.5    # cheap fact extraction
+      HINDSIGHT_API_TENANT_EXTENSION: hindsight_api.extensions.builtin.tenant:ApiKeyTenantExtension
+      HINDSIGHT_API_TENANT_API_KEY: ${HINDSIGHT_API_KEY}
+      HINDSIGHT_API_MCP_ENABLED_TOOLS: recall,reflect,list_mental_models,get_mental_model
+    depends_on: [postgres]
+
+# ros/config.py (env prefix ROS_)
+hindsight_url: str | None = None          # ROS_HINDSIGHT_URL=http://hindsight:8888
+hindsight_api_key: str | None = None      # ROS_HINDSIGHT_API_KEY
+hindsight_enabled: bool = False           # ROS_HINDSIGHT_ENABLED</script>
+
+<script type="text/plain" id="snip-service"># ros/services/agent_memory.py  (new)
+from hindsight_client import Hindsight
+from ros.config import settings
+
+_client: Hindsight | None = None
+
+def hs() -> Hindsight:
+    global _client
+    if _client is None:
+        _client = Hindsight(base_url=settings.hindsight_url,
+                            api_key=settings.hindsight_api_key, timeout=60)
+    return _client
+
+def bank_for(tenant_id, repo_slug: str) -> str:
+    return f"t{tenant_id}__{repo_slug}".replace("/", "_")
+
+async def recall_block(tenant_id, repo_slug, task: str, user_id=None,
+                       max_tokens: int = 1500) -> str:
+    r = await hs().arecall(
+        bank_id=bank_for(tenant_id, repo_slug), query=task,
+        types=["observation", "world", "experience"], prefer_observations=True,
+        budget="mid", max_tokens=max_tokens,
+        tags=["scope:repo"], tags_match="any_strict",   # skip unpromoted run notes
+    )
+    return "\n".join(f"- [{m.type}] {m.text}" for m in r.results)
+
+# services/runtime.py build_compile_context (~398-418, master path)
+if settings.hindsight_enabled and repos:
+    ctx.recalled_memory = await recall_block(
+        ctx.tenant_id, repos[0].slug, run_input_text, user_id=end_user_id)
+
+# services/runtime_manifest.py build (~378-423): carry ctx.recalled_memory
+# services/runtime.py build_compile_context_from_manifest (~802): restore it
+# engine/context.py CompileContext: add  recalled_memory: str | None = None</script>
+
+<script type="text/plain" id="snip-inject"># nodes/claude_code.py  _node(state), after checkout (~1748), before _sdk_options (~1827)
+MEMORY_PREAMBLE = (
+    "<agent_memory>\n"
+    "Notes learned on earlier runs of this repo. Treat them as hints: current code\n"
+    "and CLAUDE.md win if they disagree. Verify before acting.\n"
+    "{items}\n"
+    "</agent_memory>\n\n"
+)
+
+recalled = ctx.recalled_memory
+if recalled is None and settings.hindsight_enabled and repos:
+    # per-invocation recall when the node runs on the master (not on a VM)
+    recalled = await recall_block(ctx.tenant_id, repos[0].slug, prompt)
+if recalled:
+    prompt = MEMORY_PREAMBLE.format(items=recalled) + prompt
+
+# Also: inject ctx.user_memory_blocks / agent_memory_blocks here,
+# mirroring agent_node.py:678-686. claude_code skips them today.</script>
+
+<script type="text/plain" id="snip-mcp"># Option A: a project McpClient row with auto_attach=True
+# (picked up in services/runtime.py:575, no code change)
+{
+  "name": "memory",
+  "transport": "http",
+  "url": "http://hindsight:8888/mcp/t42__billing-api/",
+  "headers": {"Authorization": "Bearer secret://proj/hindsight_api_key"},
+  "auto_attach": true
+}
+
+# Option B: a reserved client id, like the code index
+# services/runtime.py:596-627 (master) and :880-910 (VM): add to mcp_configs
+# nodes/claude_code.py _resolve_mcp_servers (:888): add when config.use_memory
+# and add the tool names to allowed_tools, as the code index does (:1681-1688):
+MEMORY_TOOLS = ["mcp__memory__recall", "mcp__memory__reflect"]
+
+# Keep writes out of the agent's hands at first: the server only exposes
+# recall/reflect via HINDSIGHT_API_MCP_ENABLED_TOOLS. The pipeline does the writing.</script>
+
+<script type="text/plain" id="snip-capture"># nodes/claude_code.py  _on_event (:1868) already sees every event.
+# Keep a small, bounded buffer for write-back; don't retain per event.
+failed_cmds: list[dict] = []
+
+def _remember_event(kind, payload):
+    if kind == "tool_result" and payload.get("is_error"):
+        failed_cmds.append({
+            "tool": payload.get("tool_name"),
+            "input": str(payload.get("input"))[:400],
+            "error": str(payload.get("content"))[:600],
+        })
+
+# After run_claude returns (~1931-2041), activity, decisions and diff are known.
+# Put what write-back needs into response_metadata["claude_code"]:
+meta["memory_notes"] = {"failed": failed_cmds[-20:]}
+
+# Also persist the CLI transcript for this session_id as an artifact,
+# the same way changes.patch is emitted (~2012-2021). Today it is left on the box.</script>
+
+<script type="text/plain" id="snip-writeback"># services/runs.py _finalize (~2883-2897), next to schedule_for_run
+# and routers/runtime.py post_run_result (~352-366) for VM runs
+if settings.hindsight_enabled:
+    await enqueue("memory_writeback_job", str(run.id))
+
+# ros/worker.py: register in WorkerSettings.functions
+async def memory_writeback_job(ctx, run_id: str):
+    run, values = await load_run_outputs(run_id)
+    for cc in claude_code_results(values):          # response_metadata["claude_code"]
+        bank = bank_for(run.tenant_id, cc.repo_slug)
+        tags = [f"run:{run_id}", "scope:run", f"repo:{cc.repo_slug}",
+                f"workflow:{run.workflow_id}"]
+        meta = {"run_id": run_id, "commit": cc.head_sha or "", "session": cc.session_id or ""}
+        items = [{
+            "content": summarize_run(cc),   # task, commands + exit codes, files, outcome
+            "context": "claude_code run summary",
+            "document_id": f"run:{run_id}:{cc.node_id}",
+            "tags": tags, "metadata": meta,
+        }]
+        for d in cc.decisions:
+            items.append({"content": d.text, "context": "decision",
+                          "document_id": f"dec:{run_id}:{d.id}",
+                          "tags": tags + ["kind:decision"], "metadata": meta})
+        await hs().aretain_batch(bank, items, retain_async=True,
+                                 operation_id=f"wb-{run_id}-{cc.node_id}")</script>
+
+<script type="text/plain" id="snip-promote">
+# Same job, only when the run succeeded and checks passed:
+ans = await hs().areflect(
+    bank_id=bank,
+    query=f"What should future runs on {repo} do differently, based on run {run_id}?",
+    tags=[f"run:{run_id}"], tags_match="any_strict", budget="low",
+    response_schema={"type": "object",
+                     "properties": {"lessons": {"type": "array", "items": {"type": "string"}}},
+                     "required": ["lessons"]},
+)
+for i, lesson in enumerate((ans.structured_output or {}).get("lessons", [])):
+    await propose_promotion(run, bank, lesson)      # row in a review queue, not memory yet
+
+# On approval in the memory UI (pattern: routers/memory.py:228 promote_agent_block):
+await hs().aretain(bank_id=bank, content=lesson, context="promoted lesson",
+                   document_id=f"lesson:{run_id}:{i}",
+                   tags=["scope:repo", "kind:lesson"],
+                   metadata={"run_id": run_id, "approved_by": reviewer})
+# Org-wide lessons go to bank t{tenant}__org, or into CLAUDE.md via a PR.</script>
+
+<div class="tip" id="tip" role="tooltip"></div>
+<script>
+(function(){
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+const $ = s => document.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+function el(tag, attrs, parent, text){ const e=document.createElementNS(NS,tag); for(const k in attrs){ const v=attrs[k]; if((k==='fill'||k==='stroke')&&String(v).includes('var(')) e.style[k]=v; else e.setAttribute(k,v); } if(text!=null) e.textContent=text; if(parent) parent.appendChild(e); return e; }
+function setSteps(id,n){ document.querySelectorAll('#'+id+' i').forEach((d,i)=>d.classList.toggle('on',i<n)); }
+function runner(btn, fn){ let running=false; btn.addEventListener('click', async ()=>{ if(running) return; running=true; btn.disabled=true; try{ await fn(btn); } finally { running=false; btn.disabled=false; } }); }
+function fadeIn(n){ if(!reduce) n.animate([{opacity:0,transform:'translateY(4px)'},{opacity:1,transform:'none'}],{duration:300,easing:'ease-out'}); }
+
+/* ---------- 1. context assembly ---------- */
+const lanes={R:$('#laneR'),C:$('#laneC'),K:$('#laneK'),M:$('#laneM')};
+const cls={R:'l-rules',C:'l-code',K:'l-kb',M:'l-mem'};
+const tokens={R:0,C:0,K:0,M:0};
+function resetAsm(){ Object.values(lanes).forEach(l=>{ l.classList.remove('lit'); l.querySelector('.hits').innerHTML=''; }); $('#wlist').innerHTML=''; for(const k in tokens) tokens[k]=0; drawBudget(); $('#flag').hidden=true; $('#asmTask').classList.remove('lit'); setSteps('stepsAsm',0); }
+function drawBudget(){ const segs=[...document.querySelectorAll('#budget i')]; ['R','C','K','M'].forEach((k,i)=>segs[i].style.width=(tokens[k]/4000*100)+'%'); const t=Object.values(tokens).reduce((a,b)=>a+b,0); $('#budgetN').textContent=t.toLocaleString()+' tokens'; }
+function addHit(k,text,tok,extra){ const h=document.createElement('span'); h.className='hit'; h.textContent=text; lanes[k].querySelector('.hits').appendChild(h); fadeIn(h);
+  const w=document.createElement('div'); w.className=cls[k]; w.textContent=text; if(extra) w.dataset.x=extra; $('#wlist').appendChild(w); fadeIn(w); tokens[k]+=tok; drawBudget(); return [h,w]; }
+function litLane(k){ Object.entries(lanes).forEach(([kk,l])=>l.classList.toggle('lit',kk===k)); }
+runner($('#playAsm'), async ()=>{
+  resetAsm(); const cap=$('#capAsm');
+  setSteps('stepsAsm',1); $('#asmTask').classList.add('lit'); cap.innerHTML='<b>A request arrives from Slack.</b> ROS creates a run and routes it to the billing-api workflow.'; await sleep(1400);
+  setSteps('stepsAsm',2); litLane('R'); cap.innerHTML='<b>Rules load every time.</b> CLAUDE.md from the repo and the user and agent memory blocks go into the system prompt.';
+  addHit('R','CLAUDE.md: pnpm test --run',450); await sleep(350); addHit('R','block: prefers small PRs',150); await sleep(1300);
+  setSteps('stepsAsm',3); litLane('C'); cap.innerHTML='<b>Code index.</b> route_task picks the repo; during the run Claude Code calls search_code for the current implementation.';
+  addHit('C','src/middleware/auth.ts',900); await sleep(350); addHit('C','src/auth/jwt.ts · jwtVerify()',800); await sleep(1300);
+  setSteps('stepsAsm',4); litLane('K'); cap.innerHTML='<b>Knowledge base.</b> The auth runbook says what the team intended: access tokens last 15 minutes.';
+  addHit('K','runbook: access token TTL 15m',500); await sleep(1300);
+  setSteps('stepsAsm',5); litLane('M'); cap.innerHTML='<b>Agent memory.</b> Hindsight recalls what past runs on this repo learned, including one fact that is now out of date.';
+  addHit('M','obs: refresh tests need 30s clock leeway',180); await sleep(350);
+  addHit('M','decision dec-042: use jose',120); await sleep(350);
+  const [h,w]=addHit('M','fact (Mar): uses jsonwebtoken',110); await sleep(1400);
+  setSteps('stepsAsm',6); litLane(null); cap.innerHTML='<b>Trust order resolves the conflict.</b> Current code beats a learned fact. The stale memory is dropped and invalidated in Hindsight.';
+  h.classList.add('stale'); w.style.textDecoration='line-through'; w.style.opacity=.5; tokens.M-=110; drawBudget(); $('#flag').hidden=false; fadeIn($('#flag'));
+});
+
+/* ---------- 3. hindsight flows ---------- */
+const HFLOW={
+ retain:{cap:'<b>retain</b> turns raw text into linked facts. Consolidation into observations runs afterwards in the background.', steps:[
+  ['Input','POST /memories','A run summary with tags and metadata.','run r-8812: pnpm test failed,\nclock skew on refresh;\nfixed with 30s leeway'],
+  ['Chunk','engine/retain','Content is split into chunks.','1 chunk · 212 tokens'],
+  ['Extract facts','LLM · retain model','What, when, who, why, entities and causal links per chunk.','experience: added 30s\nleeway to jwtVerify'],
+  ['Embed','bge-small · 384-d','Each fact gets an embedding.','vector(384)'],
+  ['Link','entity_resolver','Entities are resolved; entity, temporal, semantic and causal links are stored.','jwtVerify ↔ auth.ts\n↔ clock skew'],
+  ['Consolidate','background task','Related facts merge into observations. Contradictions update or delete old observations.','obs: refresh tests need\n30s leeway · proof 3']]},
+ recall:{cap:'<b>recall</b> runs four searches in parallel, fuses them, reranks, and trims to a token budget. No LLM call.', steps:[
+  ['Query','POST /memories/recall','Task text, tags filter, token budget.','"add token refresh"\ntags: scope:repo'],
+  ['Semantic','pgvector','Nearest facts by embedding.','12 hits'],
+  ['Keyword','Postgres FTS','ts_rank_cd by default; true BM25 only with an extension.','7 hits'],
+  ['Graph','link expansion','Follows entity, temporal and causal links.','5 hits'],
+  ['Temporal','date parsing','Dates in the query, or a time window.','0 hits'],
+  ['Fuse + rerank','RRF k=60 · cross-encoder','Up to 300 candidates reranked; recency and proof-count boosts.','top 9'],
+  ['Trim','max_tokens','Results cut to the budget.','9 facts · 410 tokens']]},
+ reflect:{cap:'<b>reflect</b> is an agent loop over mental models, observations and raw facts. Slow and several LLM calls: use it after a run, not per step.', steps:[
+  ['Question','POST /reflect','A synthesis question plus an optional JSON schema.','"what went wrong across\nruns on billing-api?"'],
+  ['Mental models','search_mental_models','Saved questions with prepared answers are checked first.','"Repo conventions"'],
+  ['Observations','search_observations','Consolidated knowledge next.','4 observations'],
+  ['Raw facts','recall · expand','Specific facts when more detail is needed.','11 facts'],
+  ['Answer','LLM · directives','Written under the bank\'s mission, directives and disposition.','{"lessons": [...]}']]}
+};
+let hmode='retain';
+function drawH(){ const f=HFLOW[hmode]; const box=$('#hflow'); box.innerHTML='';
+  f.steps.forEach(([n,k,d,x])=>{ const s=document.createElement('div'); s.className='fstep'; s.innerHTML=`<span class="fk">${k}</span><span class="fn">${n}</span><span class="fd">${d}</span><span class="fx"></span>`; s.querySelector('.fx').textContent=x; box.appendChild(s); });
+  $('#capH').innerHTML=f.cap; }
+drawH();
+document.querySelectorAll('[data-hm]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('[data-hm]').forEach(x=>x.setAttribute('aria-pressed',x===b)); hmode=b.dataset.hm; drawH(); });
+runner($('#playH'), async ()=>{
+  drawH(); const st=[...document.querySelectorAll('#hflow .fstep')];
+  const par = hmode==='recall' ? [1,2,3,4] : [];
+  for(let i=0;i<st.length;i++){
+    if(par.includes(i)){ par.forEach(j=>st[j].classList.add('lit','on')); await sleep(1300); par.forEach(j=>st[j].classList.remove('lit')); i=par[par.length-1]; continue; }
+    st[i].classList.add('lit','on'); st[i].scrollIntoView({block:'nearest',inline:'nearest',behavior:reduce?'auto':'smooth'}); await sleep(1100); st[i].classList.remove('lit');
+  }
+});
+
+/* ---------- 4. viking explorer ---------- */
+const VT=[
+ {u:'viking://resources/intozi/billing-api/',d:0,L0:'Billing API service: invoicing, payments and auth middleware for the Intozi billing product.',L1:'# billing-api\nTypeScript service (Fastify).\n\n## Directories\n- src/  application code: auth, invoices, payments\n- docs/ runbooks and ADRs\n\n## Notes\nAuth uses jose for JWT. Tests run with pnpm test --run.',L2:null,s:.41},
+ {u:'  src/',d:1,L0:'Application code: auth, invoices, payments, HTTP middleware.',L1:'# src\n- auth/        token issue and verify\n- middleware/  request auth, rate limits\n- invoices/    invoice CRUD\n- payments/    provider adapters',L2:null,s:.52},
+ {u:'    auth/',d:2,L0:'Token issuing and verification with jose; refresh flow is not implemented yet.',L1:'# src/auth\n## jwt.ts\n  export async function signAccess(user)\n  export async function jwtVerify(token)\n## keys.ts\n  export function loadKeys()',L2:null,s:.78},
+ {u:'      jwt.ts',d:3,L0:null,L1:null,L2:'import { SignJWT, jwtVerify as verify } from "jose";\n\nexport async function jwtVerify(token: string) {\n  const { payload } = await verify(token, key, {\n    clockTolerance: 30,\n  });\n  return payload;\n}',s:.83,leaf:true},
+ {u:'      keys.ts',d:3,L0:null,L1:null,L2:'export function loadKeys() { … }',s:.35,leaf:true},
+ {u:'    middleware/',d:2,L0:'Fastify hooks for request authentication and rate limiting.',L1:'# src/middleware\n## auth.ts\n  export const requireAuth: preHandlerHook\n## rateLimit.ts\n  export const limit(...)',L2:null,s:.61},
+ {u:'      auth.ts',d:3,L0:null,L1:null,L2:'export const requireAuth = async (req) => {\n  const token = req.headers.authorization?.slice(7);\n  req.user = await jwtVerify(token);\n};',s:.71,leaf:true},
+ {u:'  docs/',d:1,L0:'Runbooks and architecture decision records.',L1:'# docs\n- runbook-auth.md\n- adr/0042-jose.md',L2:null,s:.33},
+ {u:'    runbook-auth.md',d:2,L0:null,L1:null,L2:'# Auth runbook\nAccess tokens: 15 minutes.\nRefresh tokens: 30 days, rotate on use.',s:.49,leaf:true}
+];
+let vsel=2, vtier=0;
+const vtree=$('#vtree');
+VT.forEach((n,i)=>{ const b=document.createElement('button'); b.style.paddingLeft=(8+n.d*14)+'px'; b.innerHTML=`<span>${n.u.trim()}</span><span class="sc"></span>`; b.setAttribute('aria-pressed',i===vsel); b.onclick=()=>{ vsel=i; if(VT[i].leaf) vtier=2; else if(vtier===2) vtier=0; renderV(); }; vtree.appendChild(b); });
+function renderV(){ const n=VT[vsel];
+  [...vtree.children].forEach((b,i)=>b.setAttribute('aria-pressed',i===vsel));
+  document.querySelectorAll('#vtiers .chip').forEach(c=>{ const t=+c.dataset.t; c.setAttribute('aria-pressed',t===vtier); c.disabled = n.leaf ? t!==2 : t===2; c.style.opacity=c.disabled?.4:1; });
+  const txt = vtier===0?n.L0:vtier===1?n.L1:n.L2;
+  $('#vbox').textContent = txt || '';
+  $('#vmeta').textContent = n.leaf ? 'Files are L2 only: the original content. They are embedded whole, up to 4,096 tokens.' : vtier===0 ? '.abstract.md · ≤256 characters · returned in search results and used for vector search.' : '.overview.md · ≤4,000 characters · one LLM call per directory at ingest.';
+  fadeIn($('#vbox'));
+}
+document.querySelectorAll('#vtiers .chip').forEach(c=>c.onclick=()=>{ if(c.disabled) return; vtier=+c.dataset.t; renderV(); });
+renderV();
+function clearPath(){ [...vtree.children].forEach(b=>{ b.classList.remove('path'); b.querySelector('.sc').textContent=''; }); }
+async function playV(btn){ clearPath(); const cap=$('#capV'); const bs=[...vtree.children];
+  if(btn.dataset.m==='quick'){
+    cap.innerHTML='<b>find()</b> runs one flat vector search over every record under the target URI. No tree walk.';
+    const order=VT.map((n,i)=>[n.s,i]).sort((a,b)=>b[0]-a[0]).slice(0,4);
+    for(const [s,i] of order){ bs[i].classList.add('path'); bs[i].querySelector('.sc').textContent=s.toFixed(2); await sleep(350); }
+    await sleep(600); cap.innerHTML='<b>Result:</b> the best-scoring records across the whole tree, returned with their L0 abstracts.';
+  } else {
+    cap.innerHTML='<b>search() with a reranker</b> scores directories by their L0/L1 first, then descends into the best one.';
+    for(const i of [0,1,2,3]){ bs[i].classList.add('path'); bs[i].querySelector('.sc').textContent=VT[i].s.toFixed(2); vsel=i; vtier=VT[i].leaf?2:1; renderV(); await sleep(900); }
+    cap.innerHTML='<b>Result:</b> src/auth/jwt.ts, reached through src/ and auth/. Without a rerank model configured, this path is never taken.';
+  } }
+runner($('#playV'), playV); runner($('#playV2'), playV);
+
+/* ---------- 6. wiring ---------- */
+const WS=[
+ {t:'Deploy Hindsight',lane:3,where:['docker-compose.yml','ros/config.py'],d:'Run the Hindsight server next to Postgres, with its own database on the existing pgvector server. Use OpenRouter, with a cheap model for extraction and a strong one for reflection. Turn on the API-key tenant extension.',snip:'snip-deploy'},
+ {t:'Recall when the run compiles',lane:0,where:['services/runtime.py:398-418 build_compile_context','services/runtime_manifest.py:378-423 (VM runs)','engine/context.py CompileContext'],d:'Recall on the API side, where the task text and repo are known. Store the result on the compile context and carry it in the VM manifest, because VMs have no database access.',snip:'snip-service'},
+ {t:'Inject into the Claude Code prompt',lane:2,where:['nodes/claude_code.py _node, after checkout (~1748)','before _sdk_options (~1827)'],d:'Prepend the recalled items to the prompt with a note that they are hints and that current code wins. Also inject memory blocks, which claude_code skips today.',snip:'snip-inject'},
+ {t:'Search memory mid-run over MCP',lane:2,where:['services/runtime.py:575 auto_attach McpClient','or :596-627 / :880-910 reserved client id','nodes/claude_code.py:888 _resolve_mcp_servers'],d:'Give Claude Code read-only memory tools so it can ask "how did we fix this last time?" when it gets stuck. Writes stay with the pipeline.',snip:'snip-mcp'},
+ {t:'Write back after the run',lane:1,where:['nodes/claude_code.py:1868 _on_event','services/runs.py:2883-2897 _finalize','routers/runtime.py:352-366 (VM runs)','ros/worker.py WorkerSettings'],d:'Collect failures, decisions and outcome during the run. At finalize, enqueue an arq job that retains one summary per Claude Code node, plus one item per decision, tagged scope:run.',snip:'snip-writeback',snip2:'snip-capture'},
+ {t:'Reflect and promote',lane:1,where:['ros/worker.py memory_writeback_job','routers/memory.py:228 promote pattern'],d:'On successful runs, ask reflect for lessons and put them in a review queue. Approved lessons are retained with scope:repo, so future recalls see them.',snip:'snip-promote'}
+];
+const LANES=['API (master)','arq worker','Claude Code node','Hindsight'];
+const wsvg=$('#wsvg');
+(function drawW(){
+  const defs=el('defs',{},wsvg); const m=el('marker',{id:'wah',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto'},defs); el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--line-2)'},m);
+  LANES.forEach((l,i)=>{ const y=30+i*88; el('rect',{x:0,y:y-22,width:560,height:70,rx:6,fill:i===3?'var(--accent-soft)':'var(--sunk)'},wsvg); el('text',{x:10,y:y-6,'font-size':11,style:'font-family:var(--mono);fill:var(--muted);letter-spacing:.06em'},wsvg,l.toUpperCase()); });
+  const pts=[[60,'Slack → create_run',0],[160,'compile',0],[260,'claude_code',2],[360,'run_claude',2],[460,'finalize',0]];
+  let prev=null; pts.forEach(([x,t,ln])=>{ const y=30+ln*88+22; if(prev) el('path',{d:`M${prev[0]+34},${prev[1]} C${prev[0]+60},${prev[1]} ${x-60},${y} ${x-34},${y}`,fill:'none',stroke:'var(--line-2)','stroke-width':1.5,'marker-end':'url(#wah)'},wsvg); el('rect',{x:x-34,y:y-13,width:68,height:26,rx:5,fill:'var(--surface)',stroke:'var(--line-2)'},wsvg); el('text',{x,y:y+4,'text-anchor':'middle','font-size':10.5,style:'fill:var(--ink)'},wsvg,t); prev=[x,y]; });
+  el('rect',{x:226,y:294+2,width:170,height:30,rx:6,fill:'var(--surface)',stroke:'var(--accent)'},wsvg); el('text',{x:311,y:315,'text-anchor':'middle','font-size':12,'font-weight':600,style:'fill:var(--ink)'},wsvg,'Hindsight :8888');
+  el('rect',{x:420,y:118+2,width:120,height:26,rx:5,fill:'var(--surface)',stroke:'var(--line-2)'},wsvg); el('text',{x:480,y:137,'text-anchor':'middle','font-size':10.5,style:'fill:var(--ink)'},wsvg,'writeback job');
+  // markers for steps
+  const pos=[[414,311],[196,52],[260,197],[360,197],[455,106],[505,106]];
+  pos.forEach(([x,y],i)=>{ const g=el('g',{class:'wmark',id:'wm'+i,style:'cursor:pointer'},wsvg); el('circle',{cx:x,cy:y,r:11,fill:'var(--accent)'},g); el('text',{x,y:y+4,'text-anchor':'middle','font-size':11,'font-weight':700,style:'fill:#fff;font-family:var(--mono)'},g,i+1); g.addEventListener('click',()=>selW(i)); });
+  el('path',{d:'M460,65 L475,118',fill:'none',stroke:'var(--line-2)','stroke-width':1.5,'marker-end':'url(#wah)'},wsvg);
+  const links=[[160,65,290,296],[360,241,311,296],[470,146,335,296]];
+  links.forEach(([a,b,c,d],i)=>el('path',{id:'wl'+i,d:`M${a},${b} L${c},${d}`,fill:'none',stroke:'var(--accent)','stroke-width':1.5,'stroke-dasharray':'4 4',opacity:.5},wsvg));
+})();
+const wsteps=$('#wsteps');
+WS.forEach((s,i)=>{ const b=document.createElement('button'); b.innerHTML=`<span class="n">${i+1}</span><span>${s.t}</span>`; b.onclick=()=>selW(i); wsteps.appendChild(b); });
+function selW(i){ const s=WS[i];
+  [...wsteps.children].forEach((b,k)=>b.setAttribute('aria-pressed',k===i));
+  document.querySelectorAll('.wmark circle').forEach((c,k)=>{ c.setAttribute('r',k===i?14:11); c.style.fill=k===i?'var(--accent)':'var(--line-2)'; });
+  const d=$('#wdetail');
+  d.innerHTML=`<div class="eyebrow">Step ${i+1} of ${WS.length}</div><h3>${s.t}</h3><p style="font-size:.93rem;color:var(--ink-2)">${s.d}</p><div class="where"></div><pre class="code"></pre>${s.snip2?'<pre class="code"></pre>':''}<span class="sketch">Design sketch based on the ROS source; not run.</span>`;
+  const w=d.querySelector('.where'); s.where.forEach(x=>{ const sp=document.createElement('span'); sp.textContent=x; w.appendChild(sp); });
+  const pres=d.querySelectorAll('pre.code'); pres[0].textContent=document.getElementById(s.snip).textContent.replace(/^\n/,''); if(s.snip2) pres[1].textContent=document.getElementById(s.snip2).textContent.replace(/^\n/,'');
+  fadeIn(d);
+}
+selW(0);
+runner($('#playW'), async ()=>{ for(let i=0;i<WS.length;i++){ selW(i); if(!reduce){ const c=$('#wm'+i+' circle'); c.animate([{transform:'scale(1)'},{transform:'scale(1.25)'},{transform:'scale(1)'}],{duration:600,transformOrigin:'center',transformBox:'fill-box'}); } await sleep(2600); } });
+
+/* nav highlight */
+const links=[...document.querySelectorAll('#navlinks a')];
+const io=new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting){ links.forEach(l=>l.classList.toggle('on', l.getAttribute('href')==='#'+e.target.id)); } }); },{rootMargin:'-40% 0px -55% 0px'});
+document.querySelectorAll('main section').forEach(s=>io.observe(s));
+})();
+</script>
+
+</body>
+</html>
